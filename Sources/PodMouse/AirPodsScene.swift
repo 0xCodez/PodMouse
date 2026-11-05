@@ -272,9 +272,9 @@ final class AirPodsScene {
             ), fieldOfView)
         }
         switch framing {
-        case .hero: return (SCNVector3(modelCenter.x, modelCenter.y, 170), 22)
-        case .hudStatus: return hud(height: 52, center: CGPoint(x: 52, y: 66))
-        case .hudCalibration: return hud(height: 120, center: CGPoint(x: AirPodsFraming.hudSize.width / 2, y: 112))
+        case .hero: return (SCNVector3(modelCenter.x, modelCenter.y, 196), 22)
+        case .hudStatus: return hud(height: 46, center: CGPoint(x: 52, y: 66))
+        case .hudCalibration: return hud(height: 104, center: CGPoint(x: AirPodsFraming.hudSize.width / 2, y: 112))
         }
     }
 
@@ -544,11 +544,7 @@ private struct LiveAirPodsView: NSViewRepresentable {
     let framing: AirPodsFraming
 
     func makeNSView(context: Context) -> VisibleSceneView {
-        let view = VisibleSceneView(frame: .zero, options: nil)
-        view.airpods = airpods
-        view.scene = airpods.scene
-        view.pointOfView = airpods.camera(for: framing)
-        view.framing = framing
+        let view = VisibleSceneView(sceneToShow: airpods.scene, camera: airpods.camera(for: framing), framing: framing)
         airpods.frameHUD(framing)
         view.backgroundColor = .clear
         view.antialiasingMode = .multisampling4X
@@ -566,25 +562,42 @@ private struct LiveAirPodsView: NSViewRepresentable {
     }
 }
 
-/// Renders only while a window actually shows it.
-private final class VisibleSceneView: SCNView {
-    var framing = AirPodsFraming.hero
-    var airpods: AirPodsScene?
+/// Holds its scene only while a window actually shows it. Pausing isn't enough: an `SCNView`
+/// keeps its display link and spins waiting for drawables until it has no scene.
+private final class VisibleSceneView: SCNView, SCNSceneRendererDelegate {
+    var framing: AirPodsFraming
+    private let sceneToShow: SCNScene
+    private let camera: SCNNode
     private var windowWatch: WindowWatch?
+
+    init(sceneToShow: SCNScene, camera: SCNNode, framing: AirPodsFraming) {
+        self.sceneToShow = sceneToShow
+        self.camera = camera
+        self.framing = framing
+        super.init(frame: .zero, options: nil)
+        delegate = self
+        scene = sceneToShow
+        pointOfView = camera
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError() }
+
+    /// A returning scene gets the first camera in it, whatever was set on main. Done here on
+    /// the render thread, so it can't wait on the scene lock with the pointer behind it.
+    func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
+        if renderer.pointOfView !== camera { renderer.pointOfView = camera }
+    }
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
-        windowWatch = window.map { WindowWatch($0) { [weak self] in self?.syncPlaying() } }
-        syncPlaying()
+        windowWatch = window.map { WindowWatch($0) { [weak self] in self?.syncShown() } }
+        syncShown()
     }
 
-    private func syncPlaying() {
-        // Pausing isn't enough: SCNView keeps its display link and draws until it has no scene.
+    private func syncShown() {
         let shown = WindowWatch.shows(window)
-        if shown, scene == nil {
-            scene = airpods?.scene
-            pointOfView = airpods?.camera(for: framing)
-        }
+        if shown, scene == nil { scene = sceneToShow }
         isPlaying = shown
         if !shown { scene = nil }
     }
