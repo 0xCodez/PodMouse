@@ -109,8 +109,11 @@ async function refresh(manual) {
     button.classList.remove('spinning');
   }
   clearTimeout(timer);
-  timer = setTimeout(() => refresh(false), REFRESH_MS);
+  // Every read costs database commands, so a tab nobody is looking at waits until it's back.
+  timer = setTimeout(() => { if (!document.hidden) refresh(false); }, REFRESH_MS);
 }
+
+document.addEventListener('visibilitychange', () => { if (!document.hidden && last) refresh(false); });
 
 /* ---------- sign in / out ---------- */
 function showApp() {
