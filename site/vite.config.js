@@ -37,6 +37,6 @@ const savePlugin = {
 
 export default defineConfig({
   plugins: [configPlugin, savePlugin],
-  build: { rollupOptions: { input: { main: resolve(import.meta.dirname, 'index.html'), stats: resolve(import.meta.dirname, 'stats.html') } } },
+  build: { rollupOptions: { input: { main: resolve(import.meta.dirname, 'index.html'), dashboard: resolve(import.meta.dirname, 'dashboard.html') } } },
   server: { port: 5199, strictPort: true },
 })

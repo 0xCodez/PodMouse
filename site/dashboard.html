@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en" class="motion">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- Private analytics. Numbers come from api/dashboard.js, which needs DASHBOARD_PASSWORD set in
+       Vercel; nothing here is public. ?demo previews the layout with made-up numbers. -->
+  <title>{{NAME}} Analytics</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#EFEEF4">
+  <link rel="icon" href="/favicon.png">
+  <link rel="stylesheet" href="/src/style.css">
+  <link rel="stylesheet" href="/src/dashboard.css">
+</head>
+<body class="dash">
+  <canvas id="field" aria-hidden="true"></canvas>
+
+  <main class="login" id="login" hidden>
+    <form class="login-form" id="loginForm" method="post" autocomplete="off">
+      <p class="kicker">Private</p>
+      <h1 class="display">{{NAME}} Analytics</h1>
+      <label class="sr-only" for="password">Password</label>
+      <input id="password" type="password" placeholder="Password" required autocomplete="current-password">
+      <button class="dash-btn primary" type="submit">Sign in</button>
+      <p class="login-error" id="loginError" role="alert"></p>
+    </form>
+  </main>
+
+  <div class="app" id="app" hidden>
+    <header class="top">
+      <a class="brand" href="/" title="Back to the site">{{NAME}} <span>Analytics</span></a>
+      <div class="top-actions">
+        <div class="range" id="range" role="radiogroup" aria-label="Date range">
+          <button type="button" role="radio" data-days="7">7 days</button>
+          <button type="button" role="radio" data-days="30">30 days</button>
+          <button type="button" role="radio" data-days="90">90 days</button>
+        </div>
+        <button class="dash-btn" type="button" id="refresh">Refresh</button>
+        <button class="dash-btn" type="button" id="signOut">Sign out</button>
+      </div>
+    </header>
+
+    <p class="notice" id="storageNotice" hidden><strong>Storage isn't connected yet.</strong> These numbers live in memory and reset whenever the function restarts. Connect a Redis database to the podmouse project in Vercel, then redeploy.</p>
+
+    <section class="kpis" aria-label="Key numbers">
+      <article><h2>Visitors</h2><p class="value" id="kVisitors">–</p><p class="sub" id="kVisitorsSub"></p></article>
+      <article><h2>Page views</h2><p class="value" id="kPageviews">–</p><p class="sub" id="kPageviewsSub"></p></article>
+      <article><h2>Downloads</h2><p class="value" id="kDownloads">–</p><p class="sub" id="kDownloadsSub"></p></article>
+      <article><h2>Conversion</h2><p class="value" id="kConversion">–</p><p class="sub">visitors who downloaded</p></article>
+      <article><h2>Live now</h2><p class="value"><span class="live-dot" aria-hidden="true"></span><span id="kOnline">–</span></p><p class="sub">active in the last 5 min</p></article>
+      <article><h2>GitHub downloads</h2><p class="value" id="kGithub">–</p><p class="sub" id="kGithubSub">all releases, all time</p></article>
+    </section>
+
+    <section class="block">
+      <h2 class="display">Visitors per day</h2>
+      <p class="note">Unique visitors. Hover a day for page views too.</p>
+      <div class="chart" id="visitorsChart"></div>
+      <details class="table-toggle"><summary>Show as table</summary><div class="table-wrap"><table id="visitorsTable"></table></div></details>
+    </section>
+
+    <section class="block">
+      <h2 class="display">Downloads per day</h2>
+      <p class="note">Counted on the server, so blockers don't hide them.</p>
+      <div class="chart" id="downloadsChart"></div>
+      <details class="table-toggle"><summary>Show as table</summary><div class="table-wrap"><table id="downloadsTable"></table></div></details>
+    </section>
+
+    <section class="breakdowns" aria-label="Breakdowns">
+      <article><h2 class="display">Where they clicked</h2><ol class="bars" id="places"></ol></article>
+      <article><h2 class="display">Visitors' systems</h2><ol class="bars" id="systems"></ol></article>
+      <article><h2 class="display">Sources</h2><ol class="bars" id="sources"></ol></article>
+      <article><h2 class="display">Countries</h2><ol class="bars" id="countries"></ol></article>
+      <article><h2 class="display">Devices</h2><ol class="bars" id="devices"></ol></article>
+      <article><h2 class="display">Pages</h2><ol class="bars" id="pages"></ol></article>
+      <article><h2 class="display">Actions</h2><ol class="bars" id="clicks"></ol></article>
+    </section>
+
+    <section class="block">
+      <h2 class="display">GitHub releases</h2>
+      <p class="note" id="releasesNote">Downloads counted by GitHub, including people who never visited the site.</p>
+      <div class="table-wrap"><table id="releasesTable"></table></div>
+    </section>
+
+    <p class="note why">{{NAME}} never connects to the internet, so nobody can count how many copies are actually installed. Downloads are the closest honest number.</p>
+    <footer class="foot fine" id="footer"></footer>
+  </div>
+
+  <div class="tooltip" id="tooltip" role="status" hidden></div>
+  <script type="module" src="/src/dashboard.js"></script>
+</body>
+</html>

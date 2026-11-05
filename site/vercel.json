@@ -3,5 +3,14 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "cleanUrls": true,
-  "redirects": [{ "source": "/dashboard", "destination": "/stats" }]
+  "redirects": [{ "source": "/stats", "destination": "/dashboard" }],
+  "headers": [
+    {
+      "source": "/dashboard",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" },
+        { "key": "Referrer-Policy", "value": "no-referrer" }
+      ]
+    }
+  ]
 }

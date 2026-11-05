@@ -1,14 +1,6 @@
 import { createField } from './field.js'
 import { clamp, ease, lerp, resolveKeys, sample } from './timeline.js'
 
-// Vercel counts visits without cookies. The script only exists on Vercel, not in local previews.
-if (!/^(localhost|127\.)/.test(location.hostname)) {
-  const insights = document.createElement('script')
-  insights.defer = true
-  insights.src = '/_vercel/insights/script.js'
-  document.head.append(insights)
-}
-
 const root = document.documentElement
 const motion = root.classList.contains('motion')
 
@@ -48,6 +40,17 @@ if (motion) document.querySelectorAll('[data-chars]').forEach((line) => {
   })
   line.replaceChildren(...parts)
 })
+
+// Cookieless counting for the private /dashboard. Local previews and robots are left out.
+const counted = navigator.doNotTrack !== '1' && !navigator.webdriver && !/^(localhost|127\.)/.test(location.hostname)
+const send = (data) => {
+  if (!counted) return
+  const body = new Blob([JSON.stringify(data)], { type: 'text/plain' })
+  if (!navigator.sendBeacon?.('/api/track', body)) fetch('/api/track', { method: 'POST', body, keepalive: true }).catch(() => {})
+}
+send({ t: 'pv', p: location.pathname, r: document.referrer, u: new URLSearchParams(location.search).get('utm_source') })
+document.querySelectorAll('a[href*="github.com/"]').forEach((a) => a.addEventListener('click', () => send({ t: 'click', k: 'github' })))
+document.querySelectorAll('a[href="#specs"]').forEach((a) => a.addEventListener('click', () => send({ t: 'click', k: 'requirements' })))
 
 const seen = new IntersectionObserver((entries) => {
   for (const entry of entries) {

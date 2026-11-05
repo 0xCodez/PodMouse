@@ -193,22 +193,6 @@ html.motion .axis:nth-of-type(2) { transition-delay: 0.2s; }
 html.motion .axis.arc { transition-delay: 0.6s; }
 html.motion .in .axis { stroke-dashoffset: 0; }
 
-/* The stats page. */
-.stats { max-width: 980px; margin: 0 auto; padding: 96px var(--gutter) 64px; }
-.stat-total { margin-top: 10px; font-size: clamp(88px, 15vw, 190px); font-weight: 300; letter-spacing: -0.05em; font-variant-numeric: tabular-nums; }
-.stats .note { margin-top: 12px; }
-.stats h2 { margin-top: 64px; font-size: clamp(24px, 2.4vw, 34px); }
-.releases { margin-top: 16px; border-top: 1px solid var(--line); }
-.release { display: grid; grid-template-columns: 7.5em minmax(0, 1fr) 5.5em; gap: 14px; align-items: center; min-height: 48px; border-bottom: 1px solid var(--line); }
-.release:hover .release-bar { background: var(--ink); }
-.release-tag { font-family: var(--mono); font-size: 13px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.release-track { height: 10px; }
-.release-bar { height: 100%; min-width: 2px; background: var(--cobalt); border-radius: 0 4px 4px 0; transition: background 0.2s; }
-.release-count { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
-.repo-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 24px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
-.repo-facts dd { margin-top: 4px; font-size: 26px; font-variant-numeric: tabular-nums; }
-.stats-link { display: inline-block; margin-top: 16px; color: var(--ink); border-bottom: 1px solid var(--ink); }
-
 @media (max-width: 900px) {
   .nav-links { display: none; }
   .fit-grid, .specs { grid-template-columns: minmax(0, 1fr); }

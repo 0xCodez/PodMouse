@@ -53,7 +53,7 @@
           </h1>
         </div>
         <div class="hero-action">
-          <a class="cta" href="{{DOWNLOAD_URL}}"><span>Download for Mac</span></a>
+          <a class="cta" href="/api/download?from=hero"><span>Download for Mac</span></a>
           <p class="fine">Free and open source. macOS 15 or later. Tested with AirPods 4.</p>
         </div>
       </div>
@@ -159,7 +159,7 @@
         <div><dt>Memory</dt><dd>Motion is processed in memory and thrown away.</dd></div>
         <div><dt>Native</dt><dd>A Native Swift menu bar app.</dd></div>
         <div><dt>Open</dt><dd>Open source under the MIT license.</dd></div>
-        <div><dt>This website</dt><dd>Counts page visits without cookies. The app itself sends nothing.</dd></div>
+        <div><dt>This website</dt><dd>Counts visits and downloads without cookies and keeps no IP addresses. The app itself sends nothing.</dd></div>
         <div><dt>Permissions</dt><dd>Accessibility to move the pointer and click. Motion to read the AirPods' sensors.</dd></div>
       </dl>
     </section>
@@ -179,7 +179,7 @@
     <section class="chapter download" data-chapter="download" id="download">
       <h2 class="display huge" data-chars>Aim here.</h2>
       <div class="finale" id="finale">
-        <a class="cta large" href="{{DOWNLOAD_URL}}"><span>Download for Mac</span></a>
+        <a class="cta large" href="/api/download?from=final"><span>Download for Mac</span></a>
         <a class="quiet" href="{{REPO_URL}}">View on GitHub</a>
       </div>
     </section>
@@ -187,7 +187,7 @@
 
   <footer class="footer">
     <p>{{NAME}} is an independent open-source project, not affiliated with or endorsed by Apple Inc. AirPods, Beats, Mac, and macOS are trademarks of Apple Inc. The earbuds and case shown are original 3D illustrations.</p>
-    <p><a href="{{REPO_URL}}">GitHub</a> · <a href="/stats">Stats</a> · MIT License</p>
+    <p><a href="{{REPO_URL}}">GitHub</a> · MIT License</p>
   </footer>
   <script type="module" src="/src/main.js"></script>
 </body>
