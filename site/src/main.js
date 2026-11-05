@@ -60,13 +60,34 @@ function fallBack(error) {
   root.classList.remove('motion')
 }
 
+// Temporary: lets the owner compare backgrounds on the live page. Remove once one is chosen.
+function pickBackground(field, current) {
+  const names = { silk: 'Silk', glass: 'Glass', sun: 'Sunlight', contours: 'Contours', needles: 'Needles', mesh: 'Grain' }
+  const bar = document.createElement('div')
+  bar.id = 'bgpick'
+  for (const [name, label] of Object.entries(names)) {
+    const button = document.createElement('button')
+    button.textContent = label
+    button.className = name === current ? 'on' : ''
+    button.addEventListener('click', () => {
+      field.use(name)
+      bar.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b === button))
+      history.replaceState(null, '', `?bg=${name}`)
+    })
+    bar.append(button)
+  }
+  document.body.append(bar)
+}
+
 async function start() {
   const phone = matchMedia('(max-width: 760px)').matches
-  const field = createField(document.getElementById('field'), { scale: phone ? 0.4 : 0.6 })
+  const query = new URLSearchParams(location.search)
+  const field = createField(document.getElementById('field'), { scale: phone ? 0.4 : 0.6, background: query.get('bg') ?? 'silk' })
   if (!field) throw new Error('WebGL is unavailable')
   // Paint the light now: the canvas is black until its first draw, and three.js is still to come.
   field.resize()
   field.render({ time: 0 })
+  pickBackground(field, query.get('bg') ?? 'silk')
   const { createCaseScene } = await import('./stage.js')
   const stage = await createCaseScene(document.getElementById('scene'), { phone })
 
@@ -290,7 +311,7 @@ async function start() {
     field.render({
       time,
       light: [-0.42 + smoothMX * 0.75, 0.62 + smoothMY * 0.45],
-      dent: [smoothMX * aspect, smoothMY, activity * 0.9],
+      dent: [lerp(k.x, smoothMX, activity) * aspect, lerp(clamp(k.y, -1, 1), smoothMY, activity), Math.max(activity, 0.4)],
       wave: [clickX * aspect, clickY, (ripR / viewH) * 2, ripA],
       scroll: smoothY / viewH * 0.22,
       calm,
