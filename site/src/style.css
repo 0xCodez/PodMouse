@@ -102,7 +102,7 @@ ol, ul { list-style: none; }
 .steps li:last-child { border-bottom: 1px solid var(--line); }
 .steps span { font-family: var(--mono); font-size: 12px; font-weight: 400; letter-spacing: 0.02em; color: var(--ink-3); }
 .angle { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr); align-items: center; column-gap: clamp(16px, 3vw, 48px); }
-.degrees { grid-column: 1; grid-row: 1; font-size: clamp(88px, 12vw, 210px); font-weight: 300; letter-spacing: -0.05em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.degrees { grid-column: 1; grid-row: 1; font-size: clamp(64px, 8vw, 150px); font-weight: 300; letter-spacing: -0.05em; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .angle svg { grid-column: 2; grid-row: 1; width: 100%; overflow: visible; }
 .axis { fill: none; stroke: var(--ink); stroke-width: 1.6; stroke-linecap: round; }
 .axis.arc { stroke: var(--cobalt); }

@@ -94,7 +94,6 @@ async function start() {
   const beamInk = document.getElementById('beam-ink')
   const ripple = document.getElementById('ripple')
   const cursor = document.getElementById('cursor')
-  const degrees = document.getElementById('degrees')
   const finaleButton = document.querySelector('.download .cta')
 
   let viewW = 0, viewH = 0, aspect = 1, narrow = false
@@ -160,7 +159,6 @@ async function start() {
   let introStart = 0
   let flash = 0, tapTime = -10, lastTap = -1
   let ripX = 0, ripY = 0, ripR = 0, ripA = 0
-  let countStart = 0
 
   const tap = (x, y, time) => {
     flash = 1
@@ -171,13 +169,6 @@ async function start() {
     ripA = 1
   }
   addEventListener('pointerdown', (e) => tap(e.clientX, e.clientY, performance.now() / 1000), { passive: true })
-
-  const count = new IntersectionObserver(([entry]) => {
-    if (!entry.isIntersecting) return
-    countStart = performance.now()
-    count.disconnect()
-  }, { threshold: 0.4 })
-  count.observe(degrees)
 
   const centreOf = (el) => {
     const rect = el.getBoundingClientRect()
@@ -360,11 +351,6 @@ async function start() {
       cursor.style.opacity = activity > 0.02 ? 1 : 0
     }
 
-    if (countStart) {
-      const t = clamp((now - countStart) / 1600)
-      degrees.textContent = `${Math.round(ease(t) * 74)}°`
-      if (t >= 1) countStart = 0
-    }
   }
   requestAnimationFrame(frame)
 }

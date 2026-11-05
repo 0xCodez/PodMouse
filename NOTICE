@@ -7,6 +7,10 @@ AirCursor: https://github.com/m-afham/AirCursor
 Copyright (c) 2026 m-afham and AirCursor contributors
 Licensed under the MIT License.
 
+The Manrope typeface (Resources/fonts) is bundled in the app.
+Copyright 2019 The Manrope Project Authors (https://github.com/sharanda/manrope)
+Licensed under the SIL Open Font License 1.1. See Resources/fonts/OFL.txt.
+
 The website's fonts are self-hosted from site/public/fonts/ and licensed under the
 SIL Open Font License 1.1. Each license text sits next to its font file.
 

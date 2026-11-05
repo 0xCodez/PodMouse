@@ -93,7 +93,7 @@ CMHeadphoneMotionManager (rotation, gravity, acceleration at about 50 Hz)
 GestureDetector       taps and twists, or nods and shakes
 ```
 
-AirPods can sit in any orientation inside a case, and wrists don't rotate around tidy axes: in recordings, side-to-side and up-down were about 74° apart and followed neither gravity nor each other. So both axes are measured from sweeps, and rotation is decomposed without assuming they're perpendicular. `Tests/PodMouseCoreTests/Fixtures` holds a real recording that the tests replay.
+AirPods can sit in any orientation inside a case, and wrists don't rotate around tidy axes: in recordings, side-to-side and up-down were not perpendicular and followed neither gravity nor each other. So both axes are measured from sweeps, and rotation is decomposed without assuming they're perpendicular. `Tests/PodMouseCoreTests/Fixtures` holds a real recording that the tests replay.
 
 The website lives in [`site/`](site). The earbuds and case are an original 3D model, baked from signed distance fields by `site/scripts/bake-bud.mjs`, and every image in the app is rendered from it.
 
