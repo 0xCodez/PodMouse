@@ -60,34 +60,13 @@ function fallBack(error) {
   root.classList.remove('motion')
 }
 
-// Temporary: lets the owner compare backgrounds on the live page. Remove once one is chosen.
-function pickBackground(field, current) {
-  const names = { silk: 'Silk', glass: 'Glass', sun: 'Sunlight', contours: 'Contours', needles: 'Needles', mesh: 'Grain' }
-  const bar = document.createElement('div')
-  bar.id = 'bgpick'
-  for (const [name, label] of Object.entries(names)) {
-    const button = document.createElement('button')
-    button.textContent = label
-    button.className = name === current ? 'on' : ''
-    button.addEventListener('click', () => {
-      field.use(name)
-      bar.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b === button))
-      history.replaceState(null, '', `?bg=${name}`)
-    })
-    bar.append(button)
-  }
-  document.body.append(bar)
-}
-
 async function start() {
   const phone = matchMedia('(max-width: 760px)').matches
-  const query = new URLSearchParams(location.search)
-  const field = createField(document.getElementById('field'), { scale: phone ? 0.4 : 0.6, background: query.get('bg') ?? 'silk' })
+  const field = createField(document.getElementById('field'))
   if (!field) throw new Error('WebGL is unavailable')
   // Paint the light now: the canvas is black until its first draw, and three.js is still to come.
   field.resize()
   field.render({ time: 0 })
-  pickBackground(field, query.get('bg') ?? 'silk')
   const { createCaseScene } = await import('./stage.js')
   const stage = await createCaseScene(document.getElementById('scene'), { phone })
 
@@ -165,7 +144,7 @@ async function start() {
 
   // Everything below accumulates from frame to frame, so a bad value must never get in.
   const safe = (value, fallback) => (Number.isFinite(value) ? value : fallback)
-  let smoothY = scrollY, smoothMX = 0, smoothMY = 0, ringX = 0, ringY = 0, ringR = 13
+  let smoothY = scrollY, smoothMX = 0, smoothMY = 0, ringX = 0, ringY = 0, ringR = 13, aimX = 0, aimY = 0
   let last = performance.now()
   let introStart = 0
   let flash = 0, tapTime = -10, lastTap = -1
@@ -302,22 +281,6 @@ async function start() {
     })
     stage.render(now)
 
-    // The silk: light tracks the pointer, the sheet gives under it, a click rolls through it.
-    // The reading chapters calm it down so nothing competes with the text.
-    const open = (layout.fit?.top ?? Infinity) - viewH * 0.6
-    const end = (layout.download?.top ?? Infinity) - viewH * 0.6
-    const calm = clamp((smoothY - open) / (viewH * 0.5)) * (1 - clamp((smoothY - end) / (viewH * 0.5)))
-    const clickX = (ripX / viewW) * 2 - 1, clickY = 1 - (ripY / viewH) * 2
-    field.render({
-      time,
-      light: [-0.42 + smoothMX * 0.75, 0.62 + smoothMY * 0.45],
-      dent: [lerp(k.x, smoothMX, activity) * aspect, lerp(clamp(k.y, -1, 1), smoothMY, activity), Math.max(activity, 0.4)],
-      wave: [clickX * aspect, clickY, (ripR / viewH) * 2, ripA],
-      scroll: smoothY / viewH * 0.22,
-      calm,
-      edge: flash * 0.75,
-    })
-
     // One hairline: from the case to the pointer, the page's own or the visitor's, or the button.
     const finale = clamp((smoothY - (layout.download?.top ?? Infinity) + viewH * 0.1) / (viewH * 0.1))
     const heroBeam = fine ? heroness * activity : 0
@@ -343,6 +306,29 @@ async function start() {
       }
     }
     beam.style.opacity = strength > 0.01 ? strength : 0
+
+    // The needles aim where the page is aiming: the on-screen pointer, then the button, and
+    // otherwise the visitor's own pointer, settling back on the case when that goes quiet.
+    const shown = Math.abs(k.y) < 1 && k.s > 0.05
+    const restX = shown ? k.x : 0, restY = shown ? k.y : 0
+    let goalX = lerp(restX, fine ? mouseX : restX, fine ? activity : 0)
+    let goalY = lerp(restY, fine ? mouseY : restY, fine ? activity : 0)
+    if (aiming > 0.5) { goalX = px; goalY = py } else if (finale > 0.5) { goalX = (endX / viewW) * 2 - 1; goalY = 1 - (endY / viewH) * 2 }
+    aimX = safe(aimX + (goalX - aimX) * follow(7), goalX)
+    aimY = safe(aimY + (goalY - aimY) * follow(7), goalY)
+
+    // The reading chapters calm the field so nothing competes with the text.
+    const open = (layout.fit?.top ?? Infinity) - viewH * 0.6
+    const close = (layout.download?.top ?? Infinity) - viewH * 0.6
+    const calm = clamp((smoothY - open) / (viewH * 0.5)) * (1 - clamp((smoothY - close) / (viewH * 0.5)))
+    field.render({
+      time,
+      aim: [aimX * aspect, aimY],
+      wave: [((ripX / viewW) * 2 - 1) * aspect, 1 - (ripY / viewH) * 2, (ripR / viewH) * 2, ripA],
+      scroll: (smoothY / viewH) * 0.22,
+      calm,
+      edge: flash * 0.75,
+    })
 
     if (ripA > 0.004) {
       ripR += dt * (viewH * 0.5) * (0.4 + ripA)
