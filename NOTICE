@@ -1,0 +1,8 @@
+PodMouse's pointer mapping and smoothing (Sources/PodMouseCore/Pointer.swift) are
+based on AirCursor's, and it learned two more techniques from it and reimplemented them:
+playing silent audio to keep AirPods motion flowing (Sources/PodMouse/SilentAudio.swift)
+and claiming Now Playing to receive stem presses (Sources/PodMouse/StemControls.swift).
+
+AirCursor: https://github.com/m-afham/AirCursor
+Copyright (c) 2026 m-afham and AirCursor contributors
+Licensed under the MIT License.

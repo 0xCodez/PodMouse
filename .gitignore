@@ -1,0 +1,6 @@
+.build/
+build/
+node_modules/
+site/dist/
+.vercel/
+.DS_Store
