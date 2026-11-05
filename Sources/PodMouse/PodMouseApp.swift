@@ -30,6 +30,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var diagnostics: Diagnostics?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        Theme.registerFonts()
         if let tool = Diagnostics(arguments: CommandLine.arguments, model: model) {
             diagnostics = tool
             tool.run()

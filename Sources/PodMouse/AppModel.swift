@@ -1,6 +1,7 @@
 import AppKit
 import ApplicationServices
 import Carbon.HIToolbox
+import Combine
 import CoreMotion
 import PodMouseCore
 
@@ -37,6 +38,12 @@ struct Preferences: Codable, Equatable {
     }
 }
 
+/// Fast-changing readings for the UI, apart from the model so that a live meter
+/// doesn't redraw the whole menu 50 times a second.
+final class LiveSignals: ObservableObject {
+    @Published var jolt = 0.0
+}
+
 /// Owns the pipeline: motion frames → screen rates → pointer, gestures and the HUD.
 final class AppModel: ObservableObject {
     @Published var prefs = Preferences.load() {
@@ -54,11 +61,15 @@ final class AppModel: ObservableObject {
     @Published private(set) var isReceivingMotion = false
     @Published private(set) var isOnHeadphones = AudioRoute.isOnHeadphones
     @Published private(set) var headphones: HeadphoneInfo?
-    @Published private(set) var lastJolt = 0.0
+    private(set) var lastJolt = 0.0 { didSet { live.jolt = lastJolt } }
 
+    let live = LiveSignals()
+    let light = AuraLight()
     let airpods: AirPodsScene
     let hud: NotchHUD
     private let ring = DwellRing()
+    private let ripple = ClickRipple()
+    private var moodWatch: AnyCancellable?
     private let motion = MotionService()
     private let audio = SilentAudio()
     private let stem = StemControls()
@@ -86,9 +97,9 @@ final class AppModel: ObservableObject {
 
     init() {
         let prefs = Preferences.load()
-        let airpods = AirPodsScene()
+        let airpods = AirPodsScene(light: light)
         self.airpods = airpods
-        hud = NotchHUD(airpods: airpods)
+        hud = NotchHUD(airpods: airpods, light: light)
         mapper = PointerMapper(mode: prefs.mode, sensitivity: prefs.sensitivity)
         mapper.invertX = prefs.invertX
         mapper.invertY = prefs.invertY
@@ -108,6 +119,13 @@ final class AppModel: ObservableObject {
             HotKey(id: 2, keyCode: kVK_ANSI_C) { [weak self] in self?.centerPointer() },
         ]
         healthTimer = .scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in self?.refreshStatus() }
+        moodWatch = Publishers.CombineLatest4($isOn, $isPaused, $isCalibrating, $isReceivingMotion)
+            .map(AuraMood.init)
+            .removeDuplicates()
+            .sink { [light, airpods] mood in
+                light.set(mood: mood)
+                airpods.setMood(mood)
+            }
     }
 
     // MARK: Commands
@@ -129,7 +147,7 @@ final class AppModel: ObservableObject {
         smoother.reset()
         pointer.endDrag()
         hud.showStatus(
-            title: isPaused ? L("Paused", "Пауза") : L("Pointer on", "Курсор включён"),
+            title: isPaused ? "Paused" : "Pointer on",
             subtitle: "⌃⌥T",
             battery: nil
         )
@@ -285,7 +303,7 @@ final class AppModel: ObservableObject {
     private func finishCalibration(_ calibration: AxisCalibration) {
         prefs.calibration = calibration
         isCalibrating = false
-        hud.showStatus(title: L("All set", "Готово"), subtitle: L("Short, smooth wrist moves work best", "Лучше всего короткие плавные движения кистью"), battery: nil)
+        hud.showStatus(title: "All set", subtitle: "Short, smooth wrist moves work best", battery: nil)
     }
 
     /// The tap meter reads better with a slow fall.
@@ -306,11 +324,17 @@ final class AppModel: ObservableObject {
         case _ where isPaused:
             break
         case .tap:
-            pointer.leftClick(at: position(ago: Self.handClickLookback))
+            let point = position(ago: Self.handClickLookback)
+            pointer.leftClick(at: point)
+            confirmClick(.tap, at: point)
         case .nod:
-            pointer.leftClick(at: position(ago: Self.nodClickLookback))
+            let point = position(ago: Self.nodClickLookback)
+            pointer.leftClick(at: point)
+            confirmClick(.tap, at: point)
         case .twistRight:
-            pointer.rightClick(at: position(ago: Self.handClickLookback))
+            let point = position(ago: Self.handClickLookback)
+            pointer.rightClick(at: point)
+            confirmClick(.rightClick, at: point)
         case .twistLeft:
             if prefs.twistDrags { pointer.toggleDrag() }
         }
@@ -318,11 +342,21 @@ final class AppModel: ObservableObject {
 
     private func handle(_ press: StemControls.Press) {
         switch press {
-        case .single where !isPaused: pointer.leftClick(at: pointer.location)
-        case .double where !isPaused: pointer.rightClick(at: pointer.location)
+        case .single where !isPaused:
+            pointer.leftClick(at: pointer.location)
+            confirmClick(.tap, at: pointer.location)
+        case .double where !isPaused:
+            pointer.rightClick(at: pointer.location)
+            confirmClick(.rightClick, at: pointer.location)
         case .triple: togglePause()
         default: break
         }
+    }
+
+    /// Light only: the click itself has already been posted.
+    private func confirmClick(_ pulse: AuraPulse, at point: CGPoint) {
+        light.pulse(pulse)
+        ripple.show(at: point, pulse: pulse)
     }
 
     private func position(ago seconds: TimeInterval) -> CGPoint {
@@ -354,6 +388,7 @@ final class AppModel: ObservableObject {
         case .fire:
             ring.hide()
             pointer.leftClick(at: location)
+            confirmClick(.tap, at: location)
         }
     }
 
@@ -367,8 +402,8 @@ final class AppModel: ObservableObject {
             isReceivingMotion = false
             pointer.endDrag()
             hud.showStatus(
-                title: L("AirPods disconnected", "AirPods отключены"),
-                subtitle: prefs.mode == .hand ? L("Keep the case lid open", "Держите крышку кейса открытой") : nil,
+                title: "AirPods disconnected",
+                subtitle: prefs.mode == .hand ? "Keep the case lid open" : nil,
                 battery: nil
             )
         }
@@ -384,7 +419,7 @@ final class AppModel: ObservableObject {
     private func announceConnection() {
         hud.showStatus(
             title: headphones?.name ?? "AirPods",
-            subtitle: L("Connected", "Подключены"),
+            subtitle: "Connected",
             battery: headphones?.battery
         )
     }

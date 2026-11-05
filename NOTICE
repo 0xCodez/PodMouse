@@ -6,3 +6,7 @@ and claiming Now Playing to receive stem presses (Sources/PodMouse/StemControls.
 AirCursor: https://github.com/m-afham/AirCursor
 Copyright (c) 2026 m-afham and AirCursor contributors
 Licensed under the MIT License.
+
+The Manrope typeface (Resources/fonts) is bundled in the app.
+Copyright 2019 The Manrope Project Authors (https://github.com/sharanda/manrope)
+Licensed under the SIL Open Font License 1.1. See Resources/fonts/OFL.txt.
