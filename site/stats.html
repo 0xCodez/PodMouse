@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{NAME}} stats</title>
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#EFEEF4">
+  <link rel="icon" href="/favicon.png">
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+  <nav class="nav" aria-label="Main">
+    <a class="brand" href="/">{{NAME}}</a>
+    <a class="nav-cta" href="/#download">Download</a>
+  </nav>
+
+  <main class="stats">
+    <p class="kicker">Downloads, all releases</p>
+    <p class="display stat-total" id="total">–</p>
+    <p class="note" id="status">Loading from GitHub…</p>
+
+    <section>
+      <h2 class="display">By release</h2>
+      <ol class="releases" id="releases"></ol>
+    </section>
+
+    <section>
+      <h2 class="display">Repository</h2>
+      <dl class="repo-facts">
+        <div><dt>Stars</dt><dd id="stars">–</dd></div>
+        <div><dt>Forks</dt><dd id="forks">–</dd></div>
+        <div><dt>Open issues</dt><dd id="issues">–</dd></div>
+        <div><dt>Latest release</dt><dd id="latest">–</dd></div>
+      </dl>
+    </section>
+
+    <section>
+      <h2 class="display">Visitors</h2>
+      <p class="note">Visits, countries and referrers live in Vercel Web Analytics.</p>
+      <a class="stats-link" href="https://vercel.com/dashboard">Open Vercel</a>
+    </section>
+
+    <section>
+      <h2 class="display">Why downloads, not installs</h2>
+      <p class="note">{{NAME}} never connects to the internet, so nobody can count how many copies are actually installed. Downloads are the closest honest number.</p>
+    </section>
+  </main>
+  <script type="module" src="/src/stats.js"></script>
+</body>
+</html>

@@ -1,6 +1,14 @@
 import { createField } from './field.js'
 import { clamp, ease, lerp, resolveKeys, sample } from './timeline.js'
 
+// Vercel counts visits without cookies. The script only exists on Vercel, not in local previews.
+if (!/^(localhost|127\.)/.test(location.hostname)) {
+  const insights = document.createElement('script')
+  insights.defer = true
+  insights.src = '/_vercel/insights/script.js'
+  document.head.append(insights)
+}
+
 const root = document.documentElement
 const motion = root.classList.contains('motion')
 
