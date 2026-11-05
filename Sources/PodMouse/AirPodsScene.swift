@@ -7,7 +7,11 @@ import SwiftUI
 /// The case and earbuds as a live 3D object, from the same model as the website.
 /// Everything in the app that shows AirPods shows this scene.
 final class AirPodsScene {
-    let scene = SCNScene()
+    /// `SCNView` draws with the first camera in its scene whatever `pointOfView` says, so the
+    /// HUD and the windows, which can be up together, each get a scene with one camera. The
+    /// geometry and materials are shared, and the copies move in step.
+    private let scene = SCNScene()
+    private let hudScene = SCNScene()
     private let light: AuraLight
 
     private let floatNode = SCNNode()
@@ -15,7 +19,11 @@ final class AirPodsScene {
     private let lidNode = SCNNode()
     private let ledMaterial = SCNMaterial()
     private let ledGlow = SCNNode()
-    private let rimLights = [SCNLight(), SCNLight()]
+    private let rimLights = [SCNLight(), SCNLight(), SCNLight(), SCNLight()]
+    private var hudFloat = SCNNode()
+    private var hudPose = SCNNode()
+    private var hudLid = SCNNode()
+    private var hudLedGlow = SCNNode()
     private let heroCamera = SCNNode()
     private let hudCamera = SCNNode()
     /// SceneKit's render thread holds the scene lock for most of a frame, so a change made on
@@ -45,23 +53,30 @@ final class AirPodsScene {
 
     init(light: AuraLight) {
         self.light = light
-        scene.background.contents = NSColor.clear
-        scene.lightingEnvironment.contents = Self.studioLighting()
-        scene.lightingEnvironment.intensity = 0.85
-        addRimLight(rimLights[0], euler: SCNVector3(-0.25, -2.5, 0))
-        addRimLight(rimLights[1], euler: SCNVector3(-0.25, 2.5, 0))
-
-        for (node, framing) in [(heroCamera, AirPodsFraming.hero), (hudCamera, .hudStatus)] {
+        let studio = Self.studioLighting()
+        for (index, (stage, node, framing)) in [(scene, heroCamera, AirPodsFraming.hero), (hudScene, hudCamera, .hudStatus)].enumerated() {
+            stage.background.contents = NSColor.clear
+            stage.lightingEnvironment.contents = studio
+            stage.lightingEnvironment.intensity = 0.85
+            addRimLight(rimLights[index * 2], to: stage, euler: SCNVector3(-0.25, -2.5, 0))
+            addRimLight(rimLights[index * 2 + 1], to: stage, euler: SCNVector3(-0.25, 2.5, 0))
             let shot = Self.shot(of: framing)
             node.camera = Self.camera(fieldOfView: shot.fieldOfView)
             node.position = shot.position
-            scene.rootNode.addChildNode(node)
+            stage.rootNode.addChildNode(node)
         }
 
         scene.rootNode.addChildNode(floatNode)
         floatNode.addChildNode(poseNode)
         poseNode.eulerAngles = Self.restingTilt
         buildModel()
+        lidNode.name = "lid"
+        ledGlow.name = "led"
+        hudFloat = floatNode.clone()
+        hudPose = hudFloat.childNodes[0]
+        hudLid = hudPose.childNode(withName: "lid", recursively: false) ?? hudLid
+        hudLedGlow = hudPose.childNode(withName: "led", recursively: false) ?? hudLedGlow
+        hudScene.rootNode.addChildNode(hudFloat)
         apply(.off, animated: false)
         applyMotionPreference()
         motionWatch = NSWorkspace.shared.notificationCenter.addObserver(
@@ -87,16 +102,17 @@ final class AirPodsScene {
         return camera
     }
 
-    private func addRimLight(_ light: SCNLight, euler: SCNVector3) {
+    private func addRimLight(_ light: SCNLight, to stage: SCNScene, euler: SCNVector3) {
         light.type = .directional
         light.intensity = 0
         let node = SCNNode()
         node.light = light
         node.eulerAngles = euler
-        scene.rootNode.addChildNode(node)
+        stage.rootNode.addChildNode(node)
     }
 
-    func camera(for framing: AirPodsFraming) -> SCNNode { framing == .hero ? heroCamera : hudCamera }
+    func scene(for framing: AirPodsFraming) -> SCNScene { framing == .hero ? scene : hudScene }
+    private func camera(for framing: AirPodsFraming) -> SCNNode { framing == .hero ? heroCamera : hudCamera }
 
     private func change(_ work: @escaping () -> Void) {
         queue.async {
@@ -122,23 +138,26 @@ final class AirPodsScene {
 
     func setLidOpen(_ open: Bool, animated: Bool = true) {
         let angle = open ? -Self.openLidAngle : 0
-        change { [lidNode] in
-            lidNode.removeAllActions()
-            guard animated, !Theme.reduceMotion else {
-                lidNode.eulerAngles.x = CGFloat(angle)
-                return
+        change { [lidNode, hudLid] in
+            for lid in [lidNode, hudLid] {
+                lid.removeAllActions()
+                guard animated, !Theme.reduceMotion else {
+                    lid.eulerAngles.x = CGFloat(angle)
+                    continue
+                }
+                let swing = SCNAction.rotateTo(x: CGFloat(angle), y: 0, z: 0, duration: 0.7, usesShortestUnitArc: true)
+                swing.timingMode = .easeInEaseOut
+                lid.runAction(swing)
             }
-            let swing = SCNAction.rotateTo(x: CGFloat(angle), y: 0, z: 0, duration: 0.7, usesShortestUnitArc: true)
-            swing.timingMode = .easeInEaseOut
-            lidNode.runAction(swing)
         }
     }
 
     func setLight(on: Bool) {
-        change { [ledMaterial, ledGlow] in
+        change { [ledMaterial, ledGlow, hudLedGlow] in
             ledMaterial.emission.contents = NSColor(red: 0.2, green: 1, blue: 0.48, alpha: 1).withAlphaComponent(on ? 1 : 0)
             ledMaterial.emission.intensity = on ? 1.6 : 0
             ledGlow.isHidden = !on
+            hudLedGlow.isHidden = !on
         }
     }
 
@@ -176,10 +195,11 @@ final class AirPodsScene {
             material.setValue(NSValue(scnVector3: rim.right), forKey: "rimRight")
             material.setValue(rim.amount, forKey: "rimAmount")
         }
-        rimLights[0].color = NSColor(red: rim.left.x, green: rim.left.y, blue: rim.left.z, alpha: 1)
-        rimLights[1].color = NSColor(red: rim.right.x, green: rim.right.y, blue: rim.right.z, alpha: 1)
-        rimLights[0].intensity = 400 * rim.amount
-        rimLights[1].intensity = 400 * rim.amount
+        for (index, light) in rimLights.enumerated() {
+            let side = index % 2 == 0 ? rim.left : rim.right
+            light.color = NSColor(red: side.x, green: side.y, blue: side.z, alpha: 1)
+            light.intensity = 400 * rim.amount
+        }
         SCNTransaction.commit()
     }
 
@@ -202,13 +222,15 @@ final class AirPodsScene {
     private func applyMotionPreference() {
         let still = Theme.reduceMotion
         for material in flares { material.setValue(still ? 1.0 : 0.0, forKey: "flareStill") }
-        if still {
-            floatNode.removeAction(forKey: "float")
-            floatNode.position = SCNVector3Zero
-        } else if floatNode.action(forKey: "float") == nil {
-            let rise = SCNAction.moveBy(x: 0, y: 1, z: 0, duration: 2.8)
-            rise.timingMode = .easeInEaseOut
-            floatNode.runAction(.repeatForever(.sequence([rise, rise.reversed()])), forKey: "float")
+        for float in [floatNode, hudFloat] {
+            if still {
+                float.removeAction(forKey: "float")
+                float.position = SCNVector3Zero
+            } else if float.action(forKey: "float") == nil {
+                let rise = SCNAction.moveBy(x: 0, y: 1, z: 0, duration: 2.8)
+                rise.timingMode = .easeInEaseOut
+                float.runAction(.repeatForever(.sequence([rise, rise.reversed()])), forKey: "float")
+            }
         }
     }
 
@@ -224,11 +246,13 @@ final class AirPodsScene {
         }
         light.lean(x: yaw / Self.followLimit, y: pitch / Self.followLimit)
         guard isFirst else { return }
-        change { [pose, poseNode] in
-            poseNode.eulerAngles = pose.withLock { pending in
+        change { [pose, poseNode, hudPose] in
+            let angles = pose.withLock { pending in
                 pending.isQueued = false
                 return pending.angles
             }
+            poseNode.eulerAngles = angles
+            hudPose.eulerAngles = angles
         }
     }
 
@@ -247,7 +271,7 @@ final class AirPodsScene {
             SCNTransaction.flush()
         }
         let renderer = SCNRenderer(device: device, options: nil)
-        renderer.scene = scene
+        renderer.scene = scene(for: framing)
         renderer.pointOfView = camera(for: framing)
         let aspect = framing == .hero ? 1 : AirPodsFraming.hudSize.height / AirPodsFraming.hudSize.width
         let size = size ?? CGSize(width: side, height: side * aspect)
@@ -544,14 +568,14 @@ private struct LiveAirPodsView: NSViewRepresentable {
     let framing: AirPodsFraming
 
     func makeNSView(context: Context) -> VisibleSceneView {
-        let view = VisibleSceneView(sceneToShow: airpods.scene, camera: airpods.camera(for: framing), framing: framing)
+        let view = VisibleSceneView(sceneToShow: airpods.scene(for: framing), framing: framing)
         airpods.frameHUD(framing)
         view.backgroundColor = .clear
         view.antialiasingMode = .multisampling4X
         view.preferredFramesPerSecond = 60
         view.rendersContinuously = false
         view.allowsCameraControl = false
-        view.prepare([airpods.scene], completionHandler: nil)
+        view.prepare([airpods.scene(for: framing)], completionHandler: nil)
         return view
     }
 
@@ -564,30 +588,22 @@ private struct LiveAirPodsView: NSViewRepresentable {
 
 /// Holds its scene only while a window actually shows it. Pausing isn't enough: an `SCNView`
 /// keeps its display link and spins waiting for drawables until it has no scene.
-private final class VisibleSceneView: SCNView, SCNSceneRendererDelegate {
+private final class VisibleSceneView: SCNView {
     var framing: AirPodsFraming
     private let sceneToShow: SCNScene
-    private let camera: SCNNode
     private var windowWatch: WindowWatch?
+    private var isShown = true
+    private let sceneQueue = DispatchQueue(label: "scene view", qos: .userInteractive)
 
-    init(sceneToShow: SCNScene, camera: SCNNode, framing: AirPodsFraming) {
+    init(sceneToShow: SCNScene, framing: AirPodsFraming) {
         self.sceneToShow = sceneToShow
-        self.camera = camera
         self.framing = framing
         super.init(frame: .zero, options: nil)
-        delegate = self
         scene = sceneToShow
-        pointOfView = camera
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
-
-    /// A returning scene gets the first camera in it, whatever was set on main. Done here on
-    /// the render thread, so it can't wait on the scene lock with the pointer behind it.
-    func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
-        if renderer.pointOfView !== camera { renderer.pointOfView = camera }
-    }
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
@@ -595,10 +611,16 @@ private final class VisibleSceneView: SCNView, SCNSceneRendererDelegate {
         syncShown()
     }
 
+    /// Off main, because swapping the scene waits for the render thread, and that can sit in
+    /// `nextDrawable` for a full second just when a window has gone: the pointer would freeze.
     private func syncShown() {
         let shown = WindowWatch.shows(window)
-        if shown, scene == nil { scene = sceneToShow }
-        isPlaying = shown
-        if !shown { scene = nil }
+        guard shown != isShown else { return }
+        isShown = shown
+        sceneQueue.async { [self] in
+            if shown { scene = sceneToShow }
+            isPlaying = shown
+            if !shown { scene = nil }
+        }
     }
 }
