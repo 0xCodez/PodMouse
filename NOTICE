@@ -6,3 +6,10 @@ and claiming Now Playing to receive stem presses (Sources/PodMouse/StemControls.
 AirCursor: https://github.com/m-afham/AirCursor
 Copyright (c) 2026 m-afham and AirCursor contributors
 Licensed under the MIT License.
+
+The website's fonts are self-hosted from site/public/fonts/ and licensed under the
+SIL Open Font License 1.1. Each license text sits next to its font file.
+
+Bricolage Grotesque: Copyright 2022 The Bricolage Grotesque Project Authors
+Instrument Sans: Copyright 2022 The Instrument Sans Project Authors
+Geist Mono: Copyright 2024 The Geist Project Authors

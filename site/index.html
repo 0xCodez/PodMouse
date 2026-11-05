@@ -2,146 +2,195 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PodMouse: your AirPods case is a mouse</title>
-  <meta name="description" content="PodMouse is a free, open-source Mac app that turns AirPods into an air mouse. Aim the case, tap to click. No extra hardware, no camera, no network.">
-  <meta name="theme-color" content="#000000">
-  <meta property="og:title" content="PodMouse">
-  <meta property="og:description" content="Your AirPods case is a mouse. Free and open source for Mac.">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{{NAME}}: {{TAGLINE}}</title>
+  <meta name="description" content="{{NAME}} is a free, open-source Mac app that turns AirPods into an air mouse. Aim the case, tap to click. No extra hardware, no camera, no network.">
+  <meta name="theme-color" content="#EEF0F5">
+  <meta property="og:title" content="{{NAME}}">
+  <meta property="og:description" content="{{TAGLINE}} Free and open source for Mac.">
   <meta property="og:image" content="/og.png">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="/favicon.png">
+  <link rel="preload" href="/fonts/bricolage-grotesque.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/instrument-sans.woff2" as="font" type="font/woff2" crossorigin>
+  <script>
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'WebGLRenderingContext' in window) document.documentElement.classList.add('motion')
+  </script>
   <link rel="stylesheet" href="/src/style.css">
 </head>
 <body>
-  <nav class="nav">
-    <div class="nav-inner">
-      <a class="brand" href="#top">PodMouse</a>
-      <div class="nav-links">
-        <a href="#gestures">Gestures</a>
-        <a href="#modes">Modes</a>
-        <a href="#privacy">Privacy</a>
-        <a data-repo href="#">GitHub</a>
-      </div>
-      <a class="nav-cta" data-download href="#">Download</a>
+  <canvas id="field" aria-hidden="true"></canvas>
+  <canvas id="scene" aria-hidden="true"></canvas>
+
+  <nav class="nav" aria-label="Main">
+    <a class="brand" href="#hero">{{NAME}}</a>
+    <div class="nav-links">
+      <a href="#gestures">Gestures</a>
+      <a href="#modes">Modes</a>
+      <a href="#privacy">Privacy</a>
+      <a href="#specs">Requirements</a>
+      <a href="{{REPO_URL}}">GitHub</a>
     </div>
+    <a class="nav-cta" href="#download">Download</a>
   </nav>
 
-  <main id="top">
-    <section class="story" id="story">
-      <div class="stage">
-        <canvas id="scene" aria-hidden="true"></canvas>
-        <img class="fallback" src="/hero.png" alt="A pair of white earbuds in an open charging case" hidden>
-
-        <div class="notch" id="notch" aria-hidden="true">
-          <div class="notch-card">
-            <div class="notch-dots"><i></i><i></i><i></i></div>
-            <strong id="notch-title">Hold still</strong>
-            <span id="notch-text">Lid open, aimed at the screen.</span>
-          </div>
-        </div>
-
-        <div class="screen" id="screen" aria-hidden="true">
-          <div class="screen-bar"><i></i><i></i><i></i></div>
-          <div class="screen-body">
-            <span class="target" data-target="0"></span>
-            <span class="target" data-target="1"></span>
-            <span class="target" data-target="2"></span>
-            <svg class="pointer" id="pointer" viewBox="0 0 24 24" width="26" height="26"><path d="M5 2.5v17.2l4.7-4.5 3 6.9 3-1.3-3-6.8h6.6z" fill="#fff" stroke="#000" stroke-width="1.3" stroke-linejoin="round"/></svg>
-          </div>
-        </div>
-
-        <div class="caption hero-copy" data-from="0" data-to="0.16">
-          <p class="eyebrow">PodMouse for Mac</p>
-          <h1>Your AirPods case<br>is a mouse.</h1>
-          <p class="lede">Open it. Aim it. Tap to click.</p>
-          <div class="actions">
-            <a class="button" data-download href="#">Download for Mac</a>
-            <a class="link" data-repo href="#">View on GitHub <span aria-hidden="true">›</span></a>
-          </div>
-        </div>
-        <div class="caption side left" data-from="0.2" data-to="0.42">
-          <h2>The sensors are already in&nbsp;there.</h2>
-          <p>AirPods carry a gyroscope and an accelerometer for spatial audio. PodMouse puts them to work.</p>
-        </div>
-        <div class="caption side right" data-from="0.48" data-to="0.68">
-          <h2>Three moves and it knows your&nbsp;hand.</h2>
-          <p>Hold still, sweep side to side, then up and down. It learns how your wrist really moves.</p>
-        </div>
-        <div class="caption side left low" data-from="0.76" data-to="0.98">
-          <h2>A steady hand isn&rsquo;t required.</h2>
-          <p>Calibration learns your wrist, so the pointer goes where you meant and shake stays out of it.</p>
+  <main>
+    <section class="chapter hero" data-chapter="hero" id="hero">
+      <p class="kicker">{{NAME}} for Mac</p>
+      <h1 class="display" aria-label="{{TAGLINE}}">
+        <span class="line one" aria-hidden="true">Your AirPods case</span>
+        <span class="line two" aria-hidden="true"><span>is a</span> <span id="slot"><img class="art" src="/hero.png" alt="" width="1024" height="1024"></span> <span>mouse.</span></span>
+      </h1>
+      <div class="hero-foot">
+        <p class="lede">Open it. Aim it.<br>Tap to click.</p>
+        <div class="hero-action">
+          <a class="cta" href="{{DOWNLOAD_URL}}"><span>Download for Mac</span></a>
+          <p class="fine">Free and open source. macOS 15 or later. Tested with AirPods 4.</p>
         </div>
       </div>
     </section>
 
-    <section class="section" id="gestures">
-      <p class="eyebrow">Gestures</p>
-      <h2 class="title">Everything a mouse does.<br><span>With nothing on the desk.</span></h2>
-      <div class="cards three">
-        <article class="card">
-          <div class="glyph tap"><i></i><i></i></div>
-          <h3>Pause and tap</h3>
-          <p>Click. It lands where you were aiming, and moving around never clicks by accident.</p>
+    <section class="chapter aim" data-chapter="aim" id="aim">
+      <div class="pin">
+        <article class="beat beat-open" data-in="0 .04 .28 .34">
+          <h2 class="display big">Open it.</h2>
+          <p class="note">AirPods already carry motion sensors for spatial audio. Leave them in the case with the lid open and Automatic Ear Detection off, and they keep reporting.</p>
         </article>
-        <article class="card">
-          <div class="glyph twist right"><i></i></div>
-          <h3>Twist and back</h3>
-          <p>Right click. A quick turn of the wrist, there and back, opens the menu.</p>
+        <article class="beat beat-aim" data-in=".36 .42 .62 .68">
+          <h2 class="display big">Aim it.</h2>
+          <p class="note">Hold it like a laser pointer. Rest your elbow and move only your wrist, in short smooth moves.</p>
         </article>
-        <article class="card">
-          <div class="glyph twist left"><i></i></div>
-          <h3>Twist the other way</h3>
-          <p>Drag, if you turn it on. Pick something up, move it, twist again to drop it.</p>
+        <article class="beat beat-tap" data-in=".7 .76 .96 1">
+          <h2 class="display big">Tap to click.</h2>
+          <p class="note">Stop, then tap the case. Taps only count on a still hand, so moving around won't click by accident.</p>
         </article>
+        <div class="tile" id="target" aria-hidden="true"><i></i><span>Next slide</span></div>
+        <p class="readout" id="readout" aria-hidden="true">x 0.00&nbsp;&nbsp;y 0.00</p>
+        <svg class="pointer" id="pointer" aria-hidden="true" viewBox="0 0 24 24" width="34" height="34"><path d="M5 2.5v17.2l4.7-4.5 3 6.9 3-1.3-3-6.8h6.6z" fill="#0D0F16" stroke="#FBFBFD" stroke-width="1.4" stroke-linejoin="round"/></svg>
       </div>
     </section>
 
-    <section class="section alt" id="modes">
-      <p class="eyebrow">Two ways to point</p>
-      <h2 class="title">In your hand.<br><span>Or hands-free.</span></h2>
-      <div class="cards two">
-        <article class="card tall">
-          <div class="card-copy">
-            <h3>Case in hand</h3>
-            <p>Open the lid and hold the case like a remote. Great from the couch or in a presentation. Needs Automatic Ear Detection turned off.</p>
+    <section class="chapter gestures" data-chapter="gestures" id="gestures">
+      <div class="pin">
+        <h2 class="display title">Everything a mouse does. <span>With nothing on the desk.</span></h2>
+        <ol class="moves">
+          <li data-gesture="0" class="on">
+            <span class="move-n">01</span>
+            <h3 class="display">Pause, then tap</h3>
+            <p class="move-is">Click</p>
+            <p class="move-note">Stop first. Taps only count on a still hand.</p>
+          </li>
+          <li data-gesture="1">
+            <span class="move-n">02</span>
+            <h3 class="display">Twist right and back</h3>
+            <p class="move-is">Right click</p>
+            <p class="move-note">A sharp turn of the wrist, there and back.</p>
+          </li>
+          <li data-gesture="2">
+            <span class="move-n">03</span>
+            <h3 class="display">Twist left and back</h3>
+            <p class="move-is">Drag</p>
+            <p class="move-note">Off by default. Twist once to start, again to finish.</p>
+          </li>
+        </ol>
+        <div class="demo" id="demo" data-state="0" aria-hidden="true">
+          <div class="demo-bar"><i></i><i></i><i></i></div>
+          <div class="demo-body">
+            <span class="demo-file"></span>
+            <span class="demo-spot"></span>
+            <span class="demo-menu"><b></b><b></b><b></b><b></b></span>
+            <svg class="demo-arrow" viewBox="0 0 24 24" width="20" height="20"><path d="M5 2.5v17.2l4.7-4.5 3 6.9 3-1.3-3-6.8h6.6z" fill="#0D0F16" stroke="#FBFBFD" stroke-width="1.5" stroke-linejoin="round"/></svg>
           </div>
-          <img src="/hero.png" alt="Open white charging case with two earbuds" loading="lazy">
+        </div>
+      </div>
+    </section>
+
+    <section class="chapter modes" data-chapter="modes" id="modes">
+      <div class="pin">
+        <article class="beat beat-hand" data-in="0 .05 .42 .5">
+          <p class="kicker">Two ways to point</p>
+          <h2 class="display big">In your hand.</h2>
+          <p class="note">Aim the case, pause and tap. Good from the couch or in a presentation.</p>
+          <img class="art" src="/hero.png" alt="A pair of white earbuds in an open charging case" width="1024" height="1024" loading="lazy">
         </article>
-        <article class="card tall">
-          <div class="card-copy">
-            <h3>In your ears</h3>
-            <p>Turn your head to point. Nod or press the stem to click, shake to pause. No hands at all.</p>
-          </div>
-          <img src="/buds-pair.png" alt="Two white earbuds" loading="lazy">
+        <article class="beat beat-free" data-in=".55 .62 1 1">
+          <h2 class="display big">Or hands-free.</h2>
+          <dl class="head-moves">
+            <div><dt>Turn your head</dt><dd>Moves the pointer</dd></div>
+            <div><dt>Nod, or press the stem</dt><dd>Click</dd></div>
+            <div><dt>Press the stem twice</dt><dd>Right click</dd></div>
+            <div><dt>Shake your head, or press three times</dt><dd>Pause</dd></div>
+          </dl>
+          <img class="art" src="/buds-pair.png" alt="Two white earbuds" width="512" height="512" loading="lazy">
         </article>
       </div>
     </section>
 
-    <section class="section" id="privacy">
-      <p class="eyebrow">Built right</p>
-      <h2 class="title">Small, native,<br><span>and none of your business.</span></h2>
-      <div class="bento">
-        <article class="tile wide"><strong>No network.</strong><p>PodMouse never connects to the internet. There is no account, no analytics, no updater phoning home.</p></article>
-        <article class="tile"><strong>No camera.</strong><p>Motion only, processed in memory and thrown away.</p></article>
-        <article class="tile"><strong>Open source.</strong><p>Every line is on GitHub under the MIT license.</p></article>
-        <article class="tile wide"><strong>Native Swift.</strong><p>A menu bar app that stays out of the way. Calibration and status appear in the notch, then disappear.</p></article>
+    <section class="chapter fit" data-chapter="fit" id="fit">
+      <h2 class="display title" data-split data-reveal>Three moves and it knows your hand.</h2>
+      <div class="fit-grid">
+        <ol class="steps" data-reveal>
+          <li><span>1</span>Hold still</li>
+          <li><span>2</span>Left and right</li>
+          <li><span>3</span>Up and down</li>
+        </ol>
+        <figure class="angle" data-reveal>
+          <p class="display degrees">74°</p>
+          <svg viewBox="0 0 400 400" aria-hidden="true">
+            <defs>
+              <linearGradient id="axis-a" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#27D3FF"/><stop offset="1" stop-color="#2F5BFF"/></linearGradient>
+              <linearGradient id="axis-b" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#8A4DFF"/><stop offset="1" stop-color="#FF3D9A"/></linearGradient>
+              <linearGradient id="axis-c" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF3D9A"/><stop offset="1" stop-color="#FF8A3C"/></linearGradient>
+            </defs>
+            <path class="axis" pathLength="1" stroke="url(#axis-a)" d="M21.7 225.1 378.3 174.9"/>
+            <path class="axis" pathLength="1" stroke="url(#axis-b)" d="M175 378.3 225 21.7"/>
+            <path class="axis arc" pathLength="1" stroke="url(#axis-c)" d="M269.3 190.3A70 70 0 0 0 209.7 130.7"/>
+          </svg>
+          <figcaption>Wrists don't rotate around tidy axes. In our recordings, side to side and up and down were about 74° apart. So both are measured from your own sweeps.</figcaption>
+        </figure>
       </div>
     </section>
 
-    <section class="section download" id="download">
-      <img class="download-art" src="/icon.png" alt="" width="128" height="128">
-      <h2 class="title">Free. For every Mac<br>with the right AirPods.</h2>
-      <a class="button large" data-download href="#">Download for Mac</a>
-      <p class="fine">Requires macOS 15 or later and AirPods with head tracking. Tested with AirPods 4.</p>
-      <p class="fine">Case mode needs the lid open and Automatic Ear Detection turned off in your AirPods settings.</p>
-      <p class="fine">If macOS can&rsquo;t verify the developer, open System Settings › Privacy &amp; Security and choose Open Anyway.</p>
+    <section class="chapter privacy" data-chapter="privacy" id="privacy">
+      <h2 class="display title" data-split data-reveal>None of your business.</h2>
+      <ul class="nos">
+        <li class="display" data-reveal>No network.</li>
+        <li class="display" data-reveal>No analytics.</li>
+        <li class="display" data-reveal>No camera.</li>
+        <li class="display" data-reveal>No account.</li>
+      </ul>
+      <dl class="facts" data-reveal>
+        <div><dt>Memory</dt><dd>Motion is processed in memory and thrown away.</dd></div>
+        <div><dt>Native</dt><dd>A Native Swift menu bar app.</dd></div>
+        <div><dt>Open</dt><dd>Open source under the MIT license.</dd></div>
+        <div><dt>Permissions</dt><dd>Accessibility to move the pointer and click. Motion to read the AirPods' sensors.</dd></div>
+      </dl>
+    </section>
+
+    <section class="chapter specs" data-chapter="specs" id="specs">
+      <h2 class="display title" data-split data-reveal>Before you download.</h2>
+      <dl class="spec-list" data-reveal>
+        <div><dt>Mac</dt><dd>macOS 15 or later.</dd></div>
+        <div><dt>AirPods</dt><dd>Tested with AirPods 4 only. Other AirPods with head tracking should work but are untested.</dd></div>
+        <div><dt>Case mode</dt><dd>Needs the lid open and Automatic Ear Detection off.</dd></div>
+        <div class="warn"><dt>The lid</dt><dd>Fully closing the lid disconnects the AirPods.</dd></div>
+        <div><dt>First launch</dt><dd>Allow Accessibility and Motion.</dd></div>
+        <div><dt>Gatekeeper</dt><dd>If macOS can't verify the developer: System Settings &gt; Privacy &amp; Security &gt; Open Anyway.</dd></div>
+      </dl>
+    </section>
+
+    <section class="chapter download" data-chapter="download" id="download">
+      <h2 class="display huge">Aim here.</h2>
+      <div class="finale" id="finale">
+        <a class="cta large" href="{{DOWNLOAD_URL}}"><span>Download for Mac</span></a>
+        <a class="quiet" href="{{REPO_URL}}">View on GitHub</a>
+      </div>
     </section>
   </main>
 
   <footer class="footer">
-    <p>PodMouse is an independent open-source project, not affiliated with or endorsed by Apple Inc. AirPods, Beats, Mac, and macOS are trademarks of Apple Inc. The earbuds and case shown are original 3D illustrations.</p>
-    <p><a data-repo href="#">GitHub</a> · MIT License</p>
+    <p>{{NAME}} is an independent open-source project, not affiliated with or endorsed by Apple Inc. AirPods, Beats, Mac, and macOS are trademarks of Apple Inc. The earbuds and case shown are original 3D illustrations.</p>
+    <p><a href="{{REPO_URL}}">GitHub</a> · MIT License</p>
   </footer>
   <script type="module" src="/src/main.js"></script>
 </body>

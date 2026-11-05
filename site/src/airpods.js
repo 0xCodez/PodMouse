@@ -214,6 +214,9 @@ export function createCase(budGeometry, mats) {
 
   root.add(body, lid, deck, deckWall, wellShape(12), wellShape(-12), hinge, buds, led, usb)
   root.userData.lid = lid
+  root.userData.buds = buds
+  root.userData.shells = [body, lidShell]
+  root.userData.opening = new THREE.Vector3(0, CASE.seam, 0.4)
   root.userData.setLid = (open) => { lid.rotation.x = -open * 1.9 }
   root.userData.setLed = (level) => { mats.led.emissiveIntensity = level * 6 }
   return root
@@ -245,14 +248,51 @@ export function studioEnvironment(renderer) {
   return texture
 }
 
-export function createStage(canvas, { alpha = false, antialias = true } = {}) {
-  const renderer = new THREE.WebGLRenderer({ canvas, alpha, antialias, preserveDrawingBuffer: alpha, premultipliedAlpha: false })
+/**
+ * A bright white cove for the site's light pages. White plastic on a white page disappears
+ * unless something dark reflects in it, so black flags sit where the silhouette looks, the way
+ * product photographers shoot white on white. Two faint gels tie the case to the page's glow.
+ */
+export function daylightEnvironment(renderer) {
+  const room = new THREE.Scene()
+  room.background = new THREE.Color(0xdfe2ea).multiplyScalar(0.34)
+  const panel = (w, h, position, intensity, tint = 0xffffff) => {
+    const mesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(w, h),
+      new THREE.MeshBasicMaterial({ color: new THREE.Color(tint).multiplyScalar(intensity), side: THREE.DoubleSide }),
+    )
+    mesh.position.set(...position)
+    mesh.lookAt(0, 0, 0)
+    room.add(mesh)
+  }
+  panel(26, 16, [0, 13, 4], 3.1)
+  panel(9, 22, [-15, 3, 7], 2.3)
+  panel(7, 22, [15, 2, 9], 1.5)
+  panel(30, 12, [0, 2, 16], 0.85)
+  panel(4, 26, [-13, 0, -10], 0.03)
+  panel(4, 26, [13, 0, -10], 0.03)
+  panel(34, 6, [0, -3, -14], 0.04)
+  panel(34, 14, [0, -13, 2], 0.95, 0xdfe4f2)
+  panel(6, 10, [10, 8, -10], 2.6, 0xffb3d6)
+  panel(6, 10, [-11, 7, -9], 2.6, 0x9cc4ff)
+
+  const pmrem = new THREE.PMREMGenerator(renderer)
+  const texture = pmrem.fromScene(room, 0.03).texture
+  pmrem.dispose()
+  return texture
+}
+
+export function createStage(canvas, { alpha = false, antialias = true, daylight = false } = {}) {
+  const renderer = new THREE.WebGLRenderer({
+    canvas, alpha, antialias, powerPreference: 'high-performance',
+    preserveDrawingBuffer: alpha && !daylight, premultipliedAlpha: daylight,
+  })
   renderer.outputColorSpace = THREE.SRGBColorSpace
-  renderer.toneMapping = THREE.ACESFilmicToneMapping
-  renderer.toneMappingExposure = 1.05
+  renderer.toneMapping = daylight ? THREE.NeutralToneMapping : THREE.ACESFilmicToneMapping
+  renderer.toneMappingExposure = daylight ? 0.98 : 1.05
   const scene = new THREE.Scene()
-  scene.environment = studioEnvironment(renderer)
-  scene.environmentIntensity = 1.5
+  scene.environment = daylight ? daylightEnvironment(renderer) : studioEnvironment(renderer)
+  scene.environmentIntensity = daylight ? 0.98 : 1.5
   const camera = new THREE.PerspectiveCamera(24, 1, 1, 800)
   return { renderer, scene, camera }
 }
