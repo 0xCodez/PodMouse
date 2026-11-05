@@ -66,7 +66,7 @@ public struct ControlRates: Equatable, Sendable {
 /// The axes a particular hand rotates around, in the device's frame.
 ///
 /// Recorded wrists turn around one clean axis at a time, but those axes follow neither gravity
-/// nor each other: side-to-side and up-down were about 74° apart. So both are measured, and
+/// nor each other, and side-to-side and up-down are not perpendicular. So both are measured, and
 /// any rotation is split into the two without assuming they are perpendicular.
 public struct AxisCalibration: Equatable, Codable, Sendable {
     /// Positive rotation around this moves the pointer right.
