@@ -61,12 +61,12 @@ function fallBack(error) {
 }
 
 async function start() {
-  const field = createField(document.getElementById('field'))
+  const phone = matchMedia('(max-width: 760px)').matches
+  const field = createField(document.getElementById('field'), { scale: phone ? 0.4 : 0.6 })
   if (!field) throw new Error('WebGL is unavailable')
   // Paint the light now: the canvas is black until its first draw, and three.js is still to come.
   field.resize()
-  field.render({ time: 0, blob: [0, 0, 0] })
-  const phone = matchMedia('(max-width: 760px)').matches
+  field.render({ time: 0 })
   const { createCaseScene } = await import('./stage.js')
   const stage = await createCaseScene(document.getElementById('scene'), { phone })
 
@@ -145,7 +145,6 @@ async function start() {
   // Everything below accumulates from frame to frame, so a bad value must never get in.
   const safe = (value, fallback) => (Number.isFinite(value) ? value : fallback)
   let smoothY = scrollY, smoothMX = 0, smoothMY = 0, ringX = 0, ringY = 0, ringR = 13
-  const blob = { x: 0, y: 0, vx: 0, vy: 0 }
   let last = performance.now()
   let introStart = 0
   let flash = 0, tapTime = -10, lastTap = -1
@@ -278,23 +277,23 @@ async function start() {
       x: k.x, y: k.y + Math.sin(time * 0.8) * 0.006, s: k.s, rx: k.rx, ry: k.ry, rz: k.rz,
       lid, buds: k.buds, away: k.away, led: 0.5 + Math.sin(time * 3.2) * 0.25,
       cavity: 0.3, ground: k.ground, wall: k.wall, flare: 0.42,
-      aura: (k.aura * 0.5 + flash * 0.5) * rise,
+      aura: (k.aura * 0.35 + flash * 0.5) * rise,
     })
     stage.render(now)
 
-    // The pool of light springs after the case and the pointer, so it lags and stretches.
-    const shown = Math.abs(k.y) < 1 && k.s > 0.05
-    const goalX = (shown ? k.x : 0) + smoothMX * 0.16
-    const goalY = (shown ? k.y : 0) + smoothMY * 0.16
-    blob.vx = safe(blob.vx + (goalX - blob.x) * 26 * dt, 0) * Math.exp(-6.5 * dt)
-    blob.vy = safe(blob.vy + (goalY - blob.y) * 26 * dt, 0) * Math.exp(-6.5 * dt)
-    blob.x = safe(blob.x + blob.vx * dt, goalX)
-    blob.y = safe(blob.y + blob.vy * dt, goalY)
+    // The silk: light tracks the pointer, the sheet gives under it, a click rolls through it.
+    // The reading chapters calm it down so nothing competes with the text.
+    const open = (layout.fit?.top ?? Infinity) - viewH * 0.6
+    const end = (layout.download?.top ?? Infinity) - viewH * 0.6
+    const calm = clamp((smoothY - open) / (viewH * 0.5)) * (1 - clamp((smoothY - end) / (viewH * 0.5)))
+    const clickX = (ripX / viewW) * 2 - 1, clickY = 1 - (ripY / viewH) * 2
     field.render({
       time,
-      // The radius is a share of the height, which on a phone would overflow the width.
-      blob: [blob.x, blob.y, 0.5 * clamp(aspect * 0.62)],
-      stretch: [blob.vx, blob.vy],
+      light: [-0.42 + smoothMX * 0.75, 0.62 + smoothMY * 0.45],
+      dent: [smoothMX * aspect, smoothMY, activity * 0.9],
+      wave: [clickX * aspect, clickY, (ripR / viewH) * 2, ripA],
+      scroll: smoothY / viewH * 0.22,
+      calm,
       edge: flash * 0.75,
     })
 

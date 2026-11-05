@@ -1,8 +1,8 @@
-// The page's light, kept almost invisible: a pale pool of white that follows the case and the
-// visitor's pointer, and a hairline of colour round the viewport for an instant on each click.
+// The page's background: a sheet of pearl silk, lit from above. Its folds drift on their own,
+// the light follows the pointer, the cloth gives under it, and a click sends a wave through it.
 
 const FALLBACK = {
-  '--pearl': '#F4F4F2', '--pearl-2': '#FAFAF8', '--paper': '#FFFFFF',
+  '--pearl': '#EFEEF4', '--pearl-2': '#F8F7FB', '--paper': '#FFFFFF', '--shade': '#BFC3DA',
   '--cobalt': '#2F5BFF', '--violet': '#8A4DFF', '--pink': '#FF3D9A', '--tangerine': '#FF8A3C', '--cyan': '#27D3FF',
 }
 
@@ -22,14 +22,16 @@ void main() { gl_Position = vec4(aPos, 0.0, 1.0); }
 const fragment = (c) => `
 precision highp float;
 uniform vec2 uRes;
-uniform float uT, uEdge;
-uniform vec3 uBlob;
-uniform vec2 uStretch;
+uniform vec2 uLight;
+uniform float uT, uEdge, uScroll, uCalm;
+uniform vec3 uDent;
+uniform vec4 uWave;
 
 const float TAU = 6.2831853;
 const vec3 PEARL = ${vec3(c.pearl)};
 const vec3 PEARL2 = ${vec3(c.pearl2)};
 const vec3 PAPER = ${vec3(c.paper)};
+const vec3 SHADE = ${vec3(c.shade)};
 const vec3 P0 = ${vec3(c.cyan)};
 const vec3 P1 = ${vec3(c.cobalt)};
 const vec3 P2 = ${vec3(c.violet)};
@@ -75,23 +77,55 @@ vec3 ink(vec3 under, vec3 tint, float a) {
 
 float gauss(float d, float w) { return exp(-(d * d) / (w * w)); }
 
+// Phones see a narrow slice of the sheet, so it's zoomed out there to keep whole folds in frame.
+float zoom = 1.0;
+
+float cloth(vec2 p) {
+  float t = uT * 0.05;
+  vec2 q = p + vec2(0.0, uScroll);
+  q = vec2(q.x * 0.82 + q.y * 0.57, q.y * 0.82 - q.x * 0.57);
+  vec2 drift = vec2(noise(q * 0.42 + vec2(t, -t * 0.7)), noise(q * 0.42 + vec2(5.2 - t * 0.8, 1.3 + t)));
+  q += drift * 1.3;
+  float h = sin(q.x * 2.1 + noise(q * 0.3 + t * 0.6) * 3.0) * 0.62;
+  h += sin(q.x * 4.1 + q.y * 0.7 + drift.y * 2.4) * 0.2;
+  h += noise(q * vec2(2.4, 0.7) + t * 1.2) * 0.1;
+
+  // The pointer presses into the sheet, and a click rolls out from where it landed.
+  vec2 toDent = p / zoom - uDent.xy;
+  h -= 0.5 * uDent.z * exp(-dot(toDent, toDent) * 5.0);
+  if (uWave.w > 0.001) {
+    float d = length(p / zoom - uWave.xy) - uWave.z;
+    h += 0.34 * uWave.w * sin(d * 16.0) * exp(-d * d * 14.0);
+  }
+  return h;
+}
+
 void main() {
   vec2 uv = gl_FragCoord.xy / uRes;
   float aspect = uRes.x / uRes.y;
   vec2 p = (uv * 2.0 - 1.0) * vec2(aspect, 1.0);
 
-  vec3 col = mix(PEARL, PEARL2, smoothstep(-1.0, 1.0, p.y));
+  zoom = aspect < 1.0 ? 1.8 : 1.0;
+  vec2 sheet = p * zoom;
+  float e = 0.014;
+  float h = cloth(sheet);
+  vec3 n = normalize(vec3((h - cloth(sheet + vec2(e, 0.0))) / e * 0.27, (h - cloth(sheet + vec2(0.0, e))) / e * 0.27, 1.0));
+  vec3 l = normalize(vec3(uLight, 0.85));
+  vec3 halfway = normalize(l + vec3(0.0, 0.0, 1.0));
+  float facing = max(dot(n, halfway), 0.0);
 
-  // The pool of light, stretched a little along its velocity as it follows.
-  float R = max(uBlob.z * 2.0, 0.001);
-  vec2 q = p - vec2(uBlob.x * aspect, uBlob.y);
-  float speed = length(uStretch);
-  if (speed > 0.0001) {
-    vec2 dir = uStretch / speed;
-    q += dir * dot(q, dir) * (1.0 / (1.0 + min(speed, 1.0) * 0.8) - 1.0);
-  }
-  q /= R;
-  col = mix(col, vec3(1.0), 0.5 * exp(-dot(q, q) * 1.2));
+  // Shadows stay cool and pale, so the sheet reads as white silk and never as grey.
+  float lit = smoothstep(0.18, 0.96, dot(n, l) * 0.5 + 0.5);
+  vec3 col = mix(SHADE, PAPER, lit);
+
+  // Thin-film colour: it lives on the slopes of the folds, the way it does on a shell.
+  float slope = smoothstep(0.04, 0.42, length(n.xy));
+  float phase = h * 0.13 + dot(n.xy, vec2(0.8, 0.5)) * 0.62 + uT * 0.012 + uScroll * 0.08;
+  vec3 film = mix(flow(phase), vec3(1.0), 0.42);
+  col = mix(col, film * mix(0.86, 1.0, lit), 0.4 * slope * (1.0 - uCalm * 0.42));
+
+  col += vec3(0.05) * pow(facing, 14.0) + vec3(0.14) * pow(facing, 120.0);
+  col = mix(col, PEARL2, uCalm * 0.3);
 
   if (uEdge > 0.001) {
     // A smooth minimum of the distances to the sides, so the line has no creases at the corners.
@@ -110,7 +144,7 @@ void main() {
 }
 `
 
-const UNIFORMS = ['uRes', 'uT', 'uEdge', 'uBlob', 'uStretch']
+const UNIFORMS = ['uRes', 'uT', 'uEdge', 'uScroll', 'uCalm', 'uLight', 'uDent', 'uWave']
 
 const finite = (value, fallback = 0) => (Number.isFinite(value) ? value : fallback)
 
@@ -122,7 +156,7 @@ export function createField(canvas, { scale = 0.6 } = {}) {
 
   const [tangerine, paper] = [hex('--tangerine'), hex('--paper')]
   const colours = {
-    pearl: hex('--pearl'), pearl2: hex('--pearl-2'), paper,
+    pearl: hex('--pearl'), pearl2: hex('--pearl-2'), paper, shade: hex('--shade'),
     cyan: hex('--cyan'), cobalt: hex('--cobalt'), violet: hex('--violet'), pink: hex('--pink'), tangerine,
     peach: tangerine.map((v, i) => v * 0.45 + paper[i] * 0.55),
   }
@@ -160,7 +194,7 @@ export function createField(canvas, { scale = 0.6 } = {}) {
   const resize = () => {
     const { clientWidth: w, clientHeight: h } = canvas
     if (!w || !h) return
-    const k = Math.min(scale * Math.min(devicePixelRatio || 1, 2), 960 / w)
+    const k = Math.min(scale * Math.min(devicePixelRatio || 1, 2), 800 / w)
     const width = Math.max(1, Math.round(w * k)), height = Math.max(1, Math.round(h * k))
     if (canvas.width !== width || canvas.height !== height) {
       canvas.width = width
@@ -171,13 +205,16 @@ export function createField(canvas, { scale = 0.6 } = {}) {
 
   const render = (state = {}) => {
     if (!locations || !canvas.width || !canvas.height) return
-    const { time, blob = [0, 0, 0.3], stretch = [0, 0], edge = 0 } = state
+    const { time, light = [-0.5, 0.8], dent = [0, 0, 0], wave = [0, 0, 0, 0], scroll = 0, calm = 0, edge = 0 } = state
     gl.viewport(0, 0, canvas.width, canvas.height)
     gl.uniform2f(locations.uRes, canvas.width, canvas.height)
     gl.uniform1f(locations.uT, finite(time))
     gl.uniform1f(locations.uEdge, finite(edge))
-    gl.uniform3f(locations.uBlob, finite(blob[0]), finite(blob[1]), finite(blob[2]))
-    gl.uniform2f(locations.uStretch, finite(stretch[0]), finite(stretch[1]))
+    gl.uniform1f(locations.uScroll, finite(scroll))
+    gl.uniform1f(locations.uCalm, finite(calm))
+    gl.uniform2f(locations.uLight, finite(light[0]), finite(light[1]))
+    gl.uniform3f(locations.uDent, finite(dent[0]), finite(dent[1]), finite(dent[2]))
+    gl.uniform4f(locations.uWave, finite(wave[0]), finite(wave[1]), finite(wave[2]), finite(wave[3]))
     gl.drawArrays(gl.TRIANGLES, 0, 3)
   }
 

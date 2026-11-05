@@ -4,9 +4,10 @@
 @property --spin { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
 
 :root {
-  --pearl: #F4F4F2;
-  --pearl-2: #FAFAF8;
+  --pearl: #EFEEF4;
+  --pearl-2: #F8F7FB;
   --paper: #FFFFFF;
+  --shade: #BFC3DA;
   --ink: #0D0F16;
   --ink-2: #4B5060;
   --ink-3: #656B7D;
@@ -26,7 +27,7 @@
 
 * { box-sizing: border-box; }
 html { background: var(--pearl); scroll-behavior: smooth; scroll-padding-top: 72px; -webkit-text-size-adjust: 100%; }
-body { margin: 0; color: var(--ink); background: var(--pearl); font-family: var(--text); font-size: 18px; line-height: 1.45; -webkit-font-smoothing: antialiased; overflow-x: clip; }
+body { margin: 0; color: var(--ink); background: linear-gradient(155deg, #F8F7FB, #E8ECF8 30%, #F7ECF3 55%, #F9F0E7 78%, #F2EFF8) fixed var(--pearl); font-family: var(--text); font-size: 18px; line-height: 1.45; -webkit-font-smoothing: antialiased; overflow-x: clip; }
 a { color: inherit; text-decoration: none; }
 img, svg { display: block; max-width: 100%; }
 img { height: auto; }
@@ -69,7 +70,7 @@ ol, ul { list-style: none; }
 #pointer, #readout, #target { display: none; }
 
 .hero { display: flex; flex-direction: column; min-height: 100svh; padding: 84px var(--gutter) 40px; }
-.hero h1 { font-size: clamp(42px, 6.8vw, 132px); }
+.hero h1 { font-size: clamp(42px, 8.4vw, 164px); }
 .line { display: block; }
 #slot { flex: 1; display: flex; align-items: center; justify-content: flex-end; min-height: 0; }
 #slot .art { width: min(40vw, 46svh); }
