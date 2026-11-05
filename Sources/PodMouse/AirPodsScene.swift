@@ -7,6 +7,7 @@ import SwiftUI
 /// Everything in the app that shows AirPods shows this scene.
 final class AirPodsScene {
     let scene = SCNScene()
+    private let light: AuraLight
 
     private let floatNode = SCNNode()
     private let poseNode = SCNNode()
@@ -23,7 +24,8 @@ final class AirPodsScene {
     /// Seconds for the on-screen case to drift back to its resting pose.
     private static let followReturn = 1.6
 
-    init() {
+    init(light: AuraLight) {
+        self.light = light
         scene.background.contents = NSColor.clear
         scene.lightingEnvironment.contents = Self.studioLighting()
         scene.lightingEnvironment.intensity = 1.7
@@ -106,13 +108,16 @@ final class AirPodsScene {
         applyPose()
     }
 
+    /// Tints the rim of the case to match the light around it.
+    func setMood(_ mood: AuraMood) {}
+
     private func applyPose() {
         let rest = Self.restingTilt
         poseNode.eulerAngles = SCNVector3(rest.x - CGFloat(pitch * .pi / 180), rest.y + CGFloat(yaw * .pi / 180), 0)
     }
 
     /// A still of the scene, for checking the look without a window.
-    func snapshot(side: CGFloat) -> NSImage? {
+    func snapshot(side: CGFloat, framing: AirPodsFraming = .hero) -> NSImage? {
         guard let device = MTLCreateSystemDefaultDevice() else { return nil }
         let renderer = SCNRenderer(device: device, options: nil)
         renderer.scene = scene
@@ -212,9 +217,35 @@ final class AirPodsScene {
     }
 }
 
-/// Shows the scene in SwiftUI, with a transparent background.
-struct AirPodsView: NSViewRepresentable {
+/// How a view frames the case. A persistent HUD view moves between these with its camera
+/// alone, so nothing is laid out or resized on the main thread while the pointer is live.
+enum AirPodsFraming: Equatable {
+    case hero, hudStatus, hudCalibration
+}
+
+/// The live scene, or in a snapshot a still of it: `ImageRenderer` can't draw an `SCNView`.
+struct AirPodsView: View {
     let airpods: AirPodsScene
+    var framing = AirPodsFraming.hero
+    @Environment(\.stillRendering) private var still
+
+    var body: some View {
+        if still {
+            GeometryReader { box in
+                if let image = airpods.snapshot(side: max(box.size.width, box.size.height) * 2, framing: framing) {
+                    Image(nsImage: image).resizable().scaledToFit().frame(width: box.size.width, height: box.size.height)
+                }
+            }
+        } else {
+            LiveAirPodsView(airpods: airpods, framing: framing)
+        }
+    }
+}
+
+/// Shows the scene in SwiftUI, with a transparent background.
+private struct LiveAirPodsView: NSViewRepresentable {
+    let airpods: AirPodsScene
+    let framing: AirPodsFraming
 
     func makeNSView(context: Context) -> SCNView {
         let view = SCNView(frame: .zero, options: nil)

@@ -52,38 +52,68 @@ final class Diagnostics {
 
     // MARK: Snapshot
 
+    /// Every screen in both appearances, with stills standing in for the Metal and SceneKit layers.
     @MainActor private func snapshot(to directory: URL) {
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let hud = HUDState()
-        hud.notchHeight = 37
-        func render<V: View>(_ view: V, _ name: String) {
-            let renderer = ImageRenderer(content: view.environment(\.colorScheme, .dark))
-            renderer.scale = 2
-            guard let image = renderer.nsImage,
-                  let tiff = image.tiffRepresentation,
+        func write(_ image: NSImage?, _ name: String) {
+            guard let tiff = image?.tiffRepresentation,
                   let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) else { return }
             try? png.write(to: directory.appendingPathComponent("\(name).png"))
         }
-        render(MenuView(model: model).background(Color(white: 0.13)), "menu")
-        render(WelcomeView(model: model) {}, "welcome")
-        for (name, content) in [
-            ("hud-status", HUDContent.status(title: "AirPods 4", subtitle: L("Connected", "Подключены"), battery: 86)),
-            ("hud-calibration", HUDContent.calibration(step: .sweepSides, progress: 0.6, mode: .hand, settling: false)),
-        ] {
-            hud.content = content
-            render(HUDView(state: hud, airpods: model.airpods).frame(width: 460, height: 320).background(Color(white: 0.45)), name)
+        func render<V: View>(_ view: V, _ name: String, scheme: ColorScheme) {
+            let renderer = ImageRenderer(content: view.environment(\.colorScheme, scheme).environment(\.stillRendering, true))
+            renderer.scale = 2
+            write(renderer.nsImage, name)
         }
         let airpods = model.airpods
-        func still(_ name: String) {
-            guard let tiff = airpods.snapshot(side: 800)?.tiffRepresentation,
-                  let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) else { return }
-            try? png.write(to: directory.appendingPathComponent("\(name).png"))
+        let light = model.light
+        let moods: [(String, AuraMood)] = [("off", .off), ("searching", .searching), ("connected", .connected), ("calibrating", .calibrating), ("paused", .paused)]
+
+        for (schemeName, scheme) in [("light", ColorScheme.light), ("dark", ColorScheme.dark)] {
+            for (name, mood) in moods {
+                light.set(mood: mood)
+                airpods.setMood(mood)
+                airpods.setLidOpen(mood != .off, animated: false)
+                airpods.setLight(on: mood != .off)
+                render(MenuView(model: model).background(.surface), "menu-\(name)-\(schemeName)", scheme: scheme)
+            }
+            render(WelcomeView(model: model) {}.background(.surface), "welcome-\(schemeName)", scheme: scheme)
         }
+
+        let hud = HUDState()
+        hud.notchHeight = 37
+        let wallpapers: [(String, Color)] = [("onlight", Color(white: 0.88)), ("ondark", Color(white: 0.16))]
+        let states: [(String, HUDContent, AuraMood)] = [
+            ("status", .status(title: "AirPods 4", subtitle: L("Connected", "Подключены"), battery: 86), .connected),
+            ("disconnected", .status(title: L("AirPods disconnected", "AirPods отключены"), subtitle: L("Keep the case lid open", "Держите крышку кейса открытой"), battery: nil), .searching),
+            ("paused", .status(title: L("Paused", "Пауза"), subtitle: "⌃⌥T", battery: nil), .paused),
+            ("calibration-still", .calibration(step: .holdStill, progress: 0.5, mode: .hand, settling: false), .calibrating),
+            ("calibration-sides", .calibration(step: .sweepSides, progress: 0.6, mode: .hand, settling: false), .calibrating),
+            ("calibration-updown", .calibration(step: .sweepUpDown, progress: 0.3, mode: .head, settling: false), .calibrating),
+        ]
+        for (wallpaperName, wallpaper) in wallpapers {
+            for (name, content, mood) in states {
+                light.set(mood: mood)
+                airpods.setMood(mood)
+                hud.content = content
+                light.setProgress(HUDView.progress(of: content))
+                render(HUDView(state: hud, airpods: airpods, light: light).frame(width: NotchHUD.size.width, height: NotchHUD.size.height).background(wallpaper), "hud-\(name)-\(wallpaperName)", scheme: .dark)
+            }
+        }
+        light.setProgress(nil)
+
+        write(ClickRipple.still(pulse: .tap), "ripple-tap")
+        write(ClickRipple.still(pulse: .rightClick), "ripple-right")
+        write(DwellRing.still(progress: 0.65), "dwell-ring")
+
+        airpods.setMood(.connected)
         airpods.setLidOpen(false, animated: false)
-        still("3d-closed")
+        write(airpods.snapshot(side: 800), "3d-closed")
         airpods.setLidOpen(true, animated: false)
         airpods.setLight(on: true)
-        still("3d-open")
+        write(airpods.snapshot(side: 800), "3d-open")
+        write(airpods.snapshot(side: 400, framing: .hudStatus), "3d-hud-status")
+        write(airpods.snapshot(side: 400, framing: .hudCalibration), "3d-hud-calibration")
         report("snapshots: \(directory.path)")
         NSApp.terminate(nil)
     }

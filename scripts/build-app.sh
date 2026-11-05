@@ -16,7 +16,7 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN_DIR/PodMouse" "$APP/Contents/MacOS/PodMouse"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
-cp Resources/art/airpods.mesh "$APP/Contents/Resources/"
+cp Resources/art/airpods.mesh Resources/Aura.metal Resources/fonts/*.ttf Resources/fonts/OFL.txt "$APP/Contents/Resources/"
 
 ICONSET="$(mktemp -d)/AppIcon.iconset"
 mkdir -p "$ICONSET"
@@ -26,6 +26,8 @@ for size in 16 32 128 256 512; do
 done
 iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
 
+# File Provider tags new bundles under ~/Desktop, and codesign refuses those attributes.
+xattr -cr "$APP"
 IDENTITY="$(security find-identity -v -p codesigning | sed -n 's/.*"\(Apple Development[^"]*\)".*/\1/p' | head -1 || true)"
 codesign --force --sign "${IDENTITY:--}" --entitlements Resources/PodMouse.entitlements "$APP"
 echo "Built $APP (signed: ${IDENTITY:-ad hoc})"

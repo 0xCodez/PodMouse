@@ -18,14 +18,16 @@ final class HUDState: ObservableObject {
 final class NotchHUD {
     private let state = HUDState()
     private let airpods: AirPodsScene
+    private let light: AuraLight
     private let panel: NSPanel
     private var hideWork: DispatchWorkItem?
 
-    private static let size = CGSize(width: 460, height: 320)
+    static let size = CGSize(width: 560, height: 380)
     private static let statusDuration: TimeInterval = 2.6
 
-    init(airpods: AirPodsScene) {
+    init(airpods: AirPodsScene, light: AuraLight) {
         self.airpods = airpods
+        self.light = light
         panel = NSPanel(
             contentRect: CGRect(origin: .zero, size: Self.size),
             styleMask: [.borderless, .nonactivatingPanel],
@@ -38,7 +40,7 @@ final class NotchHUD {
         panel.ignoresMouseEvents = true
         panel.level = .screenSaver
         panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
-        panel.contentView = NSHostingView(rootView: HUDView(state: state, airpods: airpods))
+        panel.contentView = NSHostingView(rootView: HUDView(state: state, airpods: airpods, light: light))
     }
 
     func showStatus(title: String, subtitle: String?, battery: Int?) {
@@ -95,8 +97,15 @@ struct NotchShape: Shape {
 }
 
 struct HUDView: View {
+    /// How far through calibration, or nil when the HUD isn't calibrating.
+    static func progress(of content: HUDContent) -> Double? {
+        guard case .calibration(let step, let progress, _, _) = content else { return nil }
+        return (Double(step.rawValue) + progress) / 3
+    }
+
     @ObservedObject var state: HUDState
     let airpods: AirPodsScene
+    let light: AuraLight
 
     var body: some View {
         VStack(spacing: 0) {
@@ -247,6 +256,12 @@ private struct CalibrationCard: View {
     }
 }
 
+/// A burst of light where a click landed.
+final class ClickRipple {
+    func show(at point: CGPoint, pulse: AuraPulse) {}
+    static func still(pulse: AuraPulse) -> NSImage? { nil }
+}
+
 /// The ring that fills around the pointer before a resting click.
 final class DwellRing {
     private final class Progress: ObservableObject {
@@ -299,4 +314,6 @@ final class DwellRing {
         panel.orderOut(nil)
         progress.value = 0
     }
+
+    static func still(progress: Double) -> NSImage? { nil }
 }
