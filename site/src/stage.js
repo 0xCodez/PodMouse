@@ -56,7 +56,21 @@ const shadowShader = /* glsl */`
   uniform sampler2D tWide;
   uniform float uGround;
   uniform float uWall;
+  uniform float uAura;
+  uniform float uAspect;
+  uniform float uTime;
   uniform vec3 uCase; // centre x, centre y, half height, all in uv
+
+  // The only colour on the page sits in the first few pixels around the case's real outline.
+  vec3 flow(float t) {
+    t = fract(t) * 4.0;
+    float f = smoothstep(0.0, 1.0, fract(t));
+    if (t < 1.0) return mix(vec3(0.15, 0.83, 1.0), vec3(0.18, 0.36, 1.0), f);
+    if (t < 2.0) return mix(vec3(0.18, 0.36, 1.0), vec3(0.54, 0.3, 1.0), f);
+    if (t < 3.0) return mix(vec3(0.54, 0.3, 1.0), vec3(1.0, 0.24, 0.6), f);
+    return mix(vec3(1.0, 0.24, 0.6), vec3(0.15, 0.83, 1.0), f);
+  }
+
   void main() {
     vec2 wallUv = vUv + vec2(0.0, uCase.z * 0.2);
     float wall = texture2D(tWide, wallUv).a * uWall * 0.14;
@@ -69,7 +83,16 @@ const shadowShader = /* glsl */`
     float ground = width * width * (0.3 * exp(-offset * offset / (depth * 0.014)) + 0.18 * exp(-offset * offset / (depth * 0.07))) * uGround;
 
     float shade = 1.0 - (1.0 - wall) * (1.0 - ground);
-    gl_FragColor = vec4(vec3(0.075, 0.095, 0.2) * shade, shade);
+    vec4 color = vec4(vec3(0.075, 0.095, 0.2) * shade, shade);
+
+    if (uAura > 0.001) {
+      vec2 fromCentre = (vUv - uCase.xy) * vec2(uAspect, 1.0);
+      float t = atan(fromCentre.y, fromCentre.x) / 6.2831853 + uTime * 0.05;
+      float tight = texture2D(tTight, vUv).a;
+      float halo = (0.8 * smoothstep(0.0, 0.5, tight) + 0.2 * texture2D(tWide, vUv).a) * uAura;
+      color = vec4(flow(t) * halo, halo) + color * (1.0 - halo);
+    }
+    gl_FragColor = color;
   }
 `
 
@@ -101,13 +124,6 @@ const flareShader = /* glsl */`
       float ax = abs(d.x);
       float shimmer = 0.92 + 0.08 * sin(uTime * 1.7 + float(i) * 2.1);
 
-      // Faint ghosts on the far side of the frame's centre, as a real lens would throw.
-      float offCentre = smoothstep(0.2, 0.7, length(uFlares[i].xy));
-      vec2 ghostA = p + uFlares[i].xy * 0.9; ghostA.x *= uAspect;
-      vec2 ghostB = p + uFlares[i].xy * 1.5; ghostB.x *= uAspect;
-      float ringA = smoothstep(0.1, 0.088, length(ghostA)) * smoothstep(0.03, 0.09, length(ghostA));
-      color = over(paint(VIOLET, 0.022 * offCentre * strength * ringA), color);
-      color = over(paint(COBALT, 0.018 * offCentre * strength * smoothstep(0.045, 0.034, length(ghostB))), color);
 
       // The wide soft band first, then the hairline over it, each fading along its length.
       float reach = 0.46 * size;
@@ -236,7 +252,8 @@ export async function createCaseScene(canvas, { phone = false } = {}) {
 
   const shadow = overlay({
     tTight: { value: tight.texture }, tWide: { value: wide.texture },
-    uGround: { value: 0 }, uWall: { value: 0 }, uCase: { value: new THREE.Vector3(0.5, 0.5, 0.25) },
+    uGround: { value: 0 }, uWall: { value: 0 }, uAura: { value: 0 }, uAspect: { value: 1 }, uTime: { value: 0 },
+    uCase: { value: new THREE.Vector3(0.5, 0.5, 0.25) },
   }, shadowShader)
   const shadowPass = fullscreen(shadow)
 
@@ -255,12 +272,11 @@ export async function createCaseScene(canvas, { phone = false } = {}) {
   const budShell = docks[0].dock.children[0].children[0]
   // The lid and the case catch light with the lid shut; once open, the earbuds' domes always do.
   const flares = [
-    { shell: sampled[1], light: KEY, gain: () => 1 - pose.away },
+    { shell: sampled[1], light: KEY, gain: () => (1 - pose.away) * (1 - smooth(clamp(pose.lid * 3))) },
     { shell: sampleShell(budShell, () => true), light: KEY, gain: () => smooth(clamp(pose.lid * 1.6 - 0.3)) },
-    { shell: sampled[0], light: FRONT, gain: () => 0.9 * (1 - pose.away) },
   ].map((item) => ({ ...item, point: new THREE.Vector3(), peak: 0, shown: new THREE.Vector3(), level: 0, ready: false }))
 
-  const pose = { x: 0, y: 0, s: 0.5, rx: 0, ry: 0, rz: 0, lid: 1, buds: 0, away: 0, led: 0, cavity: 0, ground: 0, wall: 0, flare: 0 }
+  const pose = { x: 0, y: 0, s: 0.5, rx: 0, ry: 0, rz: 0, lid: 1, buds: 0, away: 0, led: 0, cavity: 0, ground: 0, wall: 0, aura: 0, flare: 0 }
   let width = 0, height = 0, cleared = false
   const projected = new THREE.Vector3()
 
@@ -276,6 +292,7 @@ export async function createCaseScene(canvas, { phone = false } = {}) {
     const tw = Math.max(8, Math.round(w / divisor)), th = Math.max(8, Math.round(h / divisor))
     for (const t of [silhouette, scratch, tight, wide]) t.setSize(tw, th)
     flare.uniforms.uAspect.value = camera.aspect
+    shadow.uniforms.uAspect.value = camera.aspect
     flare.uniforms.uPixel.value = 2 / h
   }
 
@@ -314,6 +331,7 @@ export async function createCaseScene(canvas, { phone = false } = {}) {
     uv.set((pose.x + 1) / 2, (pose.y + 1) / 2, pose.s / 2)
     shadow.uniforms.uGround.value = clamp(pose.ground) * (1 - away)
     shadow.uniforms.uWall.value = clamp(pose.wall)
+    shadow.uniforms.uAura.value = clamp(pose.aura)
   }
 
   const blurInto = (source, destination, x, y) => {
@@ -366,7 +384,8 @@ export async function createCaseScene(canvas, { phone = false } = {}) {
     lastTime = time
     scene.updateMatrixWorld(true)
 
-    const shadows = pose.ground > 0.001 || pose.wall > 0.001
+    const shadows = pose.ground > 0.001 || pose.wall > 0.001 || pose.aura > 0.001
+    shadow.uniforms.uTime.value = time / 1000
     if (shadows) renderShadows()
     renderer.clear()
     if (shadows) renderer.render(shadowPass.scene, overlayCamera)

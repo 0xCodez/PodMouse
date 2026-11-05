@@ -1,9 +1,8 @@
-// The page's light: a pearl room, a lens of white light with a flowing colour rim, the same
-// ribbon along the viewport edges, a laser beam and a click ripple. Pale backgrounds swallow
-// additive glow, so everything here is painted over the page in saturated ink with white cores.
+// The page's light, kept almost invisible: a pale pool of white that follows the case and the
+// visitor's pointer, and a hairline of colour round the viewport for an instant on each click.
 
 const FALLBACK = {
-  '--pearl': '#EEF0F5', '--pearl-2': '#F7F7FA', '--paper': '#FBFBFD',
+  '--pearl': '#F4F4F2', '--pearl-2': '#FAFAF8', '--paper': '#FFFFFF',
   '--cobalt': '#2F5BFF', '--violet': '#8A4DFF', '--pink': '#FF3D9A', '--tangerine': '#FF8A3C', '--cyan': '#27D3FF',
 }
 
@@ -23,10 +22,9 @@ void main() { gl_Position = vec4(aPos, 0.0, 1.0); }
 const fragment = (c) => `
 precision highp float;
 uniform vec2 uRes;
-uniform float uT, uRing, uEdge, uWash, uBeam;
+uniform float uT, uEdge;
 uniform vec3 uBlob;
 uniform vec2 uStretch;
-uniform vec4 uBeamAB, uPulse;
 
 const float TAU = 6.2831853;
 const vec3 PEARL = ${vec3(c.pearl)};
@@ -83,97 +81,26 @@ void main() {
   vec2 p = (uv * 2.0 - 1.0) * vec2(aspect, 1.0);
 
   vec3 col = mix(PEARL, PEARL2, smoothstep(-1.0, 1.0, p.y));
-  float drift = noise(p * 0.55 + vec2(uT * 0.02, -uT * 0.015));
-  col += vec3(0.012, -0.002, -0.016) * drift + vec3(-0.008, 0.0, 0.012) * noise(p * 0.4 - uT * 0.017 + 9.0);
 
-  if (uWash > 0.001) {
-    float t = noise(p * 0.42 + uT * 0.03) * 0.55 + p.x * 0.09 / max(aspect, 0.4) + p.y * 0.07 + uT * 0.02;
-    col = ink(col, flow(t), uWash * (0.2 + 0.14 * noise(p * 0.8 - uT * 0.04)));
-  }
-
-  // The blob, in units of its own radius.
+  // The pool of light, stretched a little along its velocity as it follows.
   float R = max(uBlob.z * 2.0, 0.001);
   vec2 q = p - vec2(uBlob.x * aspect, uBlob.y);
   float speed = length(uStretch);
   if (speed > 0.0001) {
-    // Stretched along its velocity, like a light being dragged.
     vec2 dir = uStretch / speed;
-    float along = dot(q, dir);
-    q += dir * along * (1.0 / (1.0 + min(speed, 1.0) * 1.1) - 1.0);
+    q += dir * dot(q, dir) * (1.0 / (1.0 + min(speed, 1.0) * 0.8) - 1.0);
   }
   q /= R;
-  float dist = length(q);
-  if (dist < 3.4) {
-    float fade = smoothstep(3.4, 2.1, dist);
-    q += 0.05 * vec2(sin(q.y * 1.5 + uT * 0.5), cos(q.x * 1.3 - uT * 0.42));
-    float angle = atan(q.y, q.x);
-    float r = length(q);
-    vec2 around = vec2(cos(angle), sin(angle));
-    float wobble = 0.1 * noise(around * 0.8 + uT * 0.16);
-    float d = r - 1.0 - wobble;
-    float t = angle / TAU + 0.16 * noise(q * 0.7 + uT * 0.1) + uT * 0.035;
-
-    if (uRing > 0.001) {
-      float breath = 0.86 + 0.26 * noise(around * 1.1 + uT * 0.2 + 3.0);
-      // A wide haze, a full ribbon, then two thin strands weaving through it.
-      float haze = d > 0.0 ? exp(-d / 0.36) : exp(d / 0.16);
-      col = ink(col, flow(t + 0.06), uRing * 0.56 * haze * breath * fade);
-      float width = 0.2 + 0.07 * noise(around * 1.4 - uT * 0.26);
-      col = ink(col, flow(t), uRing * gauss(d - 0.05, width) * breath * 1.04);
-      float strandA = d + 0.07 + 0.07 * noise(around * 1.05 + uT * 0.34 + 11.0);
-      float strandB = d - 0.09 + 0.09 * noise(around * 0.95 - uT * 0.29 + 23.0);
-      col = ink(col, flow(t - 0.06), uRing * 0.95 * gauss(strandA, 0.05));
-      col = ink(col, flow(t + 0.07), uRing * 0.72 * gauss(strandB, 0.04));
-      col = mix(col, vec3(1.0), uRing * 0.55 * gauss(strandA + 0.01, 0.012));
-    }
-    float core = smoothstep(-0.02, -0.72, d);
-    col = mix(col, PAPER + 0.03, core * (0.8 + 0.2 * uRing) * step(0.001, uBlob.z));
-  }
+  col = mix(col, vec3(1.0), 0.5 * exp(-dot(q, q) * 1.2));
 
   if (uEdge > 0.001) {
-    // A smooth minimum of the distances to the sides, so the glow has no creases at the corners.
+    // A smooth minimum of the distances to the sides, so the line has no creases at the corners.
     vec2 toSide = vec2(aspect, 1.0) - abs(p);
-    float inside = -0.09 * log(exp(-toSide.x / 0.09) + exp(-toSide.y / 0.09)) + 0.05;
+    float inside = -0.05 * log(exp(-toSide.x / 0.05) + exp(-toSide.y / 0.05)) + 0.03;
     vec2 around = normalize(p / vec2(aspect, 1.0) + 0.0001);
-    float angle = atan(around.y, around.x);
-    float wobble = 0.5 + 0.5 * noise(around * 1.5 + uT * 0.24);
-    float t = angle / TAU + 0.12 * noise(around * 1.1 + uT * 0.1) + uT * 0.05;
-    float w = 0.05 + 0.1 * wobble;
-    // Narrow windows must not let the tails meet in the middle.
-    float reach = min(aspect, 1.0);
-    float fade = smoothstep(0.7 * reach, 0.05, inside);
-    fade *= fade;
-    col = ink(col, flow(t + 0.07), uEdge * 0.62 * exp(-inside / (w * 1.3)) * fade);
-    col = ink(col, flow(t), uEdge * gauss(inside, w * 0.85) * 1.04);
-    float strand = inside - w * (0.5 + 0.4 * noise(around * 2.1 - uT * 0.3 + 5.0));
-    col = ink(col, flow(t - 0.06), uEdge * 0.8 * gauss(strand, 0.022));
-    col = mix(col, vec3(1.0), uEdge * 0.8 * gauss(inside, 0.01));
-  }
-
-  if (uBeam > 0.001) {
-    vec2 a = uBeamAB.xy * vec2(aspect, 1.0), b = uBeamAB.zw * vec2(aspect, 1.0);
-    vec2 ab = b - a;
-    float s = clamp(dot(p - a, ab) / max(dot(ab, ab), 0.0001), 0.0, 1.0);
-    float d = length(p - a - ab * s);
-    float rise = mix(0.25, 1.0, s * s) * smoothstep(0.0, 0.08, s);
-    float t = s * 0.3 - uT * 0.09;
-    col = ink(col, flow(t), uBeam * rise * 0.66 * exp(-d / 0.05));
-    col = ink(col, flow(t + 0.05), uBeam * rise * gauss(d, 0.014));
-    col = mix(col, vec3(1.0), uBeam * rise * 0.92 * gauss(d, 0.0045));
-    float hit = length(p - b);
-    col = ink(col, flow(uT * 0.08 + 0.2), uBeam * 0.82 * exp(-hit / 0.05));
-    col = mix(col, vec3(1.0), uBeam * gauss(hit, 0.03));
-  }
-
-  if (uPulse.w > 0.001) {
-    vec2 o = p - uPulse.xy * vec2(aspect, 1.0);
-    float radius = uPulse.z * 2.0;
-    float d = length(o) - radius;
-    float w = 0.018 + radius * 0.13;
-    float t = atan(o.y, o.x) / TAU + uT * 0.08;
-    float hollow = smoothstep(0.0, 0.35, length(o) / max(radius, 0.001));
-    col = ink(col, flow(t), uPulse.w * 0.78 * hollow * (d < 0.0 ? exp(d / (w * 0.9)) : exp(-d / (w * 0.8))));
-    col = mix(col, vec3(1.0), uPulse.w * 0.85 * gauss(d, w * 0.22));
+    float t = atan(around.y, around.x) / TAU + 0.1 * noise(around * 1.1 + uT * 0.1) + uT * 0.06;
+    float w = 0.012 + 0.016 * (0.5 + 0.5 * noise(around * 1.5 + uT * 0.24));
+    col = ink(col, flow(t), uEdge * gauss(inside, w));
   }
 
   // Triangular dither, so the pale gradients never band in 8 bits.
@@ -183,7 +110,7 @@ void main() {
 }
 `
 
-const UNIFORMS = ['uRes', 'uT', 'uRing', 'uEdge', 'uWash', 'uBeam', 'uBlob', 'uStretch', 'uBeamAB', 'uPulse']
+const UNIFORMS = ['uRes', 'uT', 'uEdge', 'uBlob', 'uStretch']
 
 const finite = (value, fallback = 0) => (Number.isFinite(value) ? value : fallback)
 
@@ -244,18 +171,13 @@ export function createField(canvas, { scale = 0.6 } = {}) {
 
   const render = (state = {}) => {
     if (!locations || !canvas.width || !canvas.height) return
-    const { time, blob = [0, 0, 0.3], stretch = [0, 0], ring = 0, edge = 0, wash = 0, beamA = [0, 0], beamB = [0, 0], beam = 0, pulse = [0, 0, 0, 0] } = state
+    const { time, blob = [0, 0, 0.3], stretch = [0, 0], edge = 0 } = state
     gl.viewport(0, 0, canvas.width, canvas.height)
     gl.uniform2f(locations.uRes, canvas.width, canvas.height)
     gl.uniform1f(locations.uT, finite(time))
-    gl.uniform1f(locations.uRing, finite(ring))
     gl.uniform1f(locations.uEdge, finite(edge))
-    gl.uniform1f(locations.uWash, finite(wash))
-    gl.uniform1f(locations.uBeam, finite(beam))
     gl.uniform3f(locations.uBlob, finite(blob[0]), finite(blob[1]), finite(blob[2]))
     gl.uniform2f(locations.uStretch, finite(stretch[0]), finite(stretch[1]))
-    gl.uniform4f(locations.uBeamAB, finite(beamA[0]), finite(beamA[1]), finite(beamB[0]), finite(beamB[1]))
-    gl.uniform4f(locations.uPulse, finite(pulse[0]), finite(pulse[1]), finite(pulse[2]), finite(pulse[3]))
     gl.drawArrays(gl.TRIANGLES, 0, 3)
   }
 

@@ -141,9 +141,7 @@ function daylightShot({ view, pose, distance, size = 1024 }) {
   return still
 }
 
-const FLOW = ['#27d3ff', '#2f5bff', '#8a4dff', '#ff3d9a', '#ff8a3c', '#ffd9b8', '#27d3ff']
-
-// The link preview: the page's light as a still, drawn with 2D canvas gradients.
+// The link preview: the case alone on the page's plain white, as on the site.
 async function siteCard(still) {
   const font = new FontFace('Bricolage Grotesque', 'url(/fonts/bricolage-grotesque.woff2)', { weight: '200 800', stretch: '75% 100%' })
   document.fonts.add(await font.load())
@@ -152,56 +150,32 @@ async function siteCard(still) {
   card.height = 630
   const ctx = card.getContext('2d')
   const base = ctx.createLinearGradient(0, 0, 0, 630)
-  base.addColorStop(0, '#f7f7fa')
-  base.addColorStop(1, '#eef0f5')
+  base.addColorStop(0, '#fafaf8')
+  base.addColorStop(1, '#f4f4f2')
   ctx.fillStyle = base
   ctx.fillRect(0, 0, 1200, 630)
-
-  const cx = 880, cy = 330
-  const flow = ctx.createConicGradient(-0.6, cx, cy)
-  FLOW.forEach((color, i) => flow.addColorStop(i / (FLOW.length - 1), color))
-  const halo = (radius, width, blur, alpha) => {
-    ctx.save()
-    ctx.filter = `blur(${blur}px)`
-    ctx.globalAlpha = alpha
-    ctx.strokeStyle = flow
-    ctx.lineWidth = width
-    ctx.beginPath()
-    ctx.ellipse(cx, cy, radius, radius * 0.94, 0, 0, Math.PI * 2)
-    ctx.stroke()
-    ctx.restore()
-  }
-  halo(232, 90, 56, 0.7)
-  halo(236, 26, 16, 0.95)
-  const core = ctx.createRadialGradient(cx, cy, 30, cx, cy, 226)
-  core.addColorStop(0, '#fff')
-  core.addColorStop(0.72, 'rgba(255, 255, 255, 0.92)')
-  core.addColorStop(1, 'rgba(255, 255, 255, 0)')
-  ctx.fillStyle = core
-  ctx.fillRect(cx - 240, cy - 240, 480, 480)
 
   ctx.save()
   ctx.shadowColor = 'rgba(30, 36, 80, 0.28)'
   ctx.shadowBlur = 44
   ctx.shadowOffsetY = 26
-  ctx.drawImage(still, 575, 25, 610, 610)
+  ctx.drawImage(still, 620, 65, 500, 500)
   ctx.restore()
 
   ctx.fillStyle = '#0d0f16'
-  ctx.fontStretch = 'semi-condensed'
-  ctx.letterSpacing = '-2px'
-  ctx.font = '800 88px "Bricolage Grotesque"'
+  ctx.letterSpacing = '-2.5px'
+  ctx.font = '500 80px "Bricolage Grotesque"'
   const lines = []
   for (const word of TAGLINE.split(' ')) {
     const line = lines.at(-1)
     if (line && ctx.measureText(`${line} ${word}`).width <= 520) lines[lines.length - 1] = `${line} ${word}`
     else lines.push(word)
   }
-  const bottom = 340 + (lines.length * 88) / 2
-  lines.forEach((line, i) => ctx.fillText(line, 64, bottom - (lines.length - 1 - i) * 88))
+  const bottom = 340 + (lines.length * 84) / 2
+  lines.forEach((line, i) => ctx.fillText(line, 64, bottom - (lines.length - 1 - i) * 84))
   ctx.letterSpacing = '0px'
   ctx.fillStyle = '#4b5060'
-  ctx.font = '600 30px "Bricolage Grotesque"'
+  ctx.font = '500 26px "Bricolage Grotesque"'
   ctx.fillText(`${NAME} for Mac`, 66, 92)
   return card
 }
