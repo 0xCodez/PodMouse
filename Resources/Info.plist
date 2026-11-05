@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>ru</string>
+	<string>en</string>
 	<key>CFBundleDisplayName</key>
 	<string>PodMouse</string>
 	<key>CFBundleExecutable</key>
@@ -29,6 +29,6 @@
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSMotionUsageDescription</key>
-	<string>PodMouse читает датчики движения AirPods, чтобы двигать курсор. Данные не покидают ваш Mac.</string>
+	<string>PodMouse reads the motion sensors in your AirPods to move the pointer. The data never leaves your Mac.</string>
 </dict>
 </plist>

@@ -39,6 +39,27 @@ extension Font {
     }
 }
 
+/// Reports when a window appears, disappears or gets covered. Occlusion alone won't do: after
+/// `orderOut` it still says visible and sends no notification, so animation would run on unseen.
+final class WindowWatch {
+    private var occlusion: NSObjectProtocol?
+    private var visibility: NSKeyValueObservation?
+
+    init(_ window: NSWindow, changed: @escaping () -> Void) {
+        occlusion = NotificationCenter.default.addObserver(forName: NSWindow.didChangeOcclusionStateNotification, object: window, queue: .main) { _ in changed() }
+        visibility = window.observe(\.isVisible) { _, _ in changed() }
+    }
+
+    static func shows(_ window: NSWindow?) -> Bool {
+        guard let window else { return false }
+        return window.isVisible && window.occlusionState.contains(.visible)
+    }
+
+    deinit {
+        if let occlusion { NotificationCenter.default.removeObserver(occlusion) }
+    }
+}
+
 /// A colour with a light and a dark value, resolved from SwiftUI's environment so that
 /// snapshots of either appearance come out right.
 struct Adaptive: ShapeStyle {

@@ -147,7 +147,7 @@ final class AppModel: ObservableObject {
         smoother.reset()
         pointer.endDrag()
         hud.showStatus(
-            title: isPaused ? L("Paused", "Пауза") : L("Pointer on", "Курсор включён"),
+            title: isPaused ? "Paused" : "Pointer on",
             subtitle: "⌃⌥T",
             battery: nil
         )
@@ -303,7 +303,7 @@ final class AppModel: ObservableObject {
     private func finishCalibration(_ calibration: AxisCalibration) {
         prefs.calibration = calibration
         isCalibrating = false
-        hud.showStatus(title: L("All set", "Готово"), subtitle: L("Short, smooth wrist moves work best", "Лучше всего короткие плавные движения кистью"), battery: nil)
+        hud.showStatus(title: "All set", subtitle: "Short, smooth wrist moves work best", battery: nil)
     }
 
     /// The tap meter reads better with a slow fall.
@@ -402,8 +402,8 @@ final class AppModel: ObservableObject {
             isReceivingMotion = false
             pointer.endDrag()
             hud.showStatus(
-                title: L("AirPods disconnected", "AirPods отключены"),
-                subtitle: prefs.mode == .hand ? L("Keep the case lid open", "Держите крышку кейса открытой") : nil,
+                title: "AirPods disconnected",
+                subtitle: prefs.mode == .hand ? "Keep the case lid open" : nil,
                 battery: nil
             )
         }
@@ -419,7 +419,7 @@ final class AppModel: ObservableObject {
     private func announceConnection() {
         hud.showStatus(
             title: headphones?.name ?? "AirPods",
-            subtitle: L("Connected", "Подключены"),
+            subtitle: "Connected",
             battery: headphones?.battery
         )
     }

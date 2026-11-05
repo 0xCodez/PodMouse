@@ -17,7 +17,7 @@ final class RecordingGuide {
 
         var body: some View {
             VStack(spacing: 14) {
-                Text(L("Step \(state.step) of \(state.total)", "Шаг \(state.step) из \(state.total)"))
+                Text("Step \(state.step) of \(state.total)")
                     .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(.white.opacity(0.55))
                 Text(state.title)

@@ -11,8 +11,12 @@ if [[ "${1:-}" == "--universal" ]]; then ARCH_FLAGS=(--arch arm64 --arch x86_64)
 swift build -c release ${ARCH_FLAGS[@]+"${ARCH_FLAGS[@]}"}
 BIN_DIR="$(swift build -c release ${ARCH_FLAGS[@]+"${ARCH_FLAGS[@]}"} --show-bin-path)"
 
-APP=build/PodMouse.app
-rm -rf "$APP"
+# Assembled outside the repo: File Provider tags new bundles under ~/Desktop, sometimes
+# between two commands, and codesign refuses those attributes.
+OUT=build/PodMouse.app
+STAGE="$(mktemp -d)"
+trap 'rm -rf "$STAGE"' EXIT
+APP="$STAGE/PodMouse.app"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN_DIR/PodMouse" "$APP/Contents/MacOS/PodMouse"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
@@ -26,8 +30,10 @@ for size in 16 32 128 256 512; do
 done
 iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
 
-# File Provider tags new bundles under ~/Desktop, and codesign refuses those attributes.
 xattr -cr "$APP"
 IDENTITY="$(security find-identity -v -p codesigning | sed -n 's/.*"\(Apple Development[^"]*\)".*/\1/p' | head -1 || true)"
 codesign --force --sign "${IDENTITY:--}" --entitlements Resources/PodMouse.entitlements "$APP"
-echo "Built $APP (signed: ${IDENTITY:-ad hoc})"
+mkdir -p build
+rm -rf "$OUT"
+mv "$APP" "$OUT"
+echo "Built $OUT (signed: ${IDENTITY:-ad hoc})"
